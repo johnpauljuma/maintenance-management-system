@@ -1,36 +1,51 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Layout, Menu, Avatar, Dropdown, Button } from "antd";
-import { BellOutlined, UserOutlined, HomeOutlined, SettingOutlined, LogoutOutlined, FileTextOutlined } from "@ant-design/icons";
+import { Layout, Menu, Avatar, Dropdown, Button, Drawer } from "antd";
+import {
+  BellOutlined,
+  UserOutlined,
+  HomeOutlined,
+  SettingOutlined,
+  LogoutOutlined,
+  FileTextOutlined,
+  MenuOutlined,
+} from "@ant-design/icons";
 import Link from "next/link";
-// import { supabase } from "@/utils/supabase"; // Uncomment when Supabase is set up
+import { supabase } from "../../../lib/supabase";
 
 const { Header, Sider, Content, Footer } = Layout;
 
 const ClientLayout = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [collapsed, setCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
-      // Uncomment when Supabase is set up
-      // const { data: { user } } = await supabase.auth.getUser();
-      // if (user) setUser(user);
-
-      // Temporary mock user for testing UI
-      setUser({
-        user_metadata: {
-          fullName: "John Doe",
-          profilePic: "",
-        },
-      });
+        const { data, error } = await supabase.auth.getUser();
+        
+        if (error) {
+            console.error("Error fetching user:", error.message);
+            return;
+        }
+        
+        if (data?.user) {
+            setUser(data.user);
+        }
     };
     fetchUser();
+
+    // Detect mobile view
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   const handleLogout = async () => {
-    // Uncomment when Supabase is set up
-    // await supabase.auth.signOut();
     console.log("User logged out");
   };
 
@@ -39,11 +54,19 @@ const ClientLayout = ({ children }) => {
     items: [
       {
         key: "profile",
-        label: <Link href="/clients/profile"><UserOutlined style={{color: "#fff"}}/> Profile</Link>,
+        label: (
+          <Link href="/clients/profile">
+            <UserOutlined /> Profile
+          </Link>
+        ),
       },
       {
         key: "settings",
-        label: <Link href="/clients/settings"><SettingOutlined /> Settings</Link>,
+        label: (
+          <Link href="/clients/settings">
+            <SettingOutlined /> Settings
+          </Link>
+        ),
       },
       {
         key: "logout",
@@ -57,7 +80,7 @@ const ClientLayout = ({ children }) => {
     ],
   };
 
-  // Sidebar menu
+  // Sidebar menu items
   const sidebarItems = [
     {
       key: "home",
@@ -87,15 +110,20 @@ const ClientLayout = ({ children }) => {
           justifyContent: "space-between",
           alignItems: "center",
           padding: "0 20px",
-          position: "fixed", // Fixed navbar
+          position: "fixed",
           top: 0,
           width: "100%",
           zIndex: 1000,
-          height: "64px", // Ensure it stays consistent
+          height: "64px",
           boxShadow: "0 2px 5px rgba(0,0,0,0.2)",
         }}
       >
-        {/* Left Side: App Name */}
+        {/* Left Side: Mobile Menu Toggle */}
+        {isMobile && (
+          <Button type="text" icon={<MenuOutlined />} onClick={() => setCollapsed(true)} style={{ color: "white" }} />
+        )}
+
+        {/* Middle: App Name */}
         <span style={{ fontSize: "18px", fontWeight: "bold" }}>AFMMS</span>
 
         {/* Right Side: Notifications & Profile */}
@@ -107,7 +135,7 @@ const ClientLayout = ({ children }) => {
               {user?.user_metadata?.fullName || "User"}
               <Avatar
                 src={user?.user_metadata?.profilePic || "l"}
-                icon={!user?.user_metadata?.profilePic ? <UserOutlined style={{color: "#fff"}}/> : null}
+                icon={!user?.user_metadata?.profilePic ? <UserOutlined /> : null}
               />
             </Button>
           </Dropdown>
@@ -115,27 +143,38 @@ const ClientLayout = ({ children }) => {
       </Header>
 
       <Layout>
-        {/* Sidebar */}
-        <Sider
-          width={250}
-          style={{
-            background: "#fff",
-            height: "calc(100vh - 64px)", // Adjust height based on navbar
-            position: "fixed",
-            left: 0,
-            top: "64px", // Start below navbar
-            bottom: "60px",
-            boxShadow: "2px 0px 10px rgba(0,0,0,0.1)",
-          }}
+        {/* Sidebar (Desktop View) */}
+        {!isMobile && (
+          <Sider
+            width={200}
+            style={{
+              background: "#fff",
+              height: "calc(100vh - 64px)",
+              position: "fixed",
+              left: 0,
+              top: "64px",
+              bottom: "60px",
+              boxShadow: "2px 0px 10px rgba(0,0,0,0.1)",
+            }}
+          >
+            <Menu mode="inline" defaultSelectedKeys={["home"]} style={{ height: "100%", borderRight: 0 }} items={sidebarItems} />
+          </Sider>
+        )}
+
+        {/* Sidebar (Mobile View) - Drawer */}
+        <Drawer
+          title="Menu"
+          placement="left"
+          closable
+          onClose={() => setCollapsed(false)}
+          open={collapsed}
         >
-          <Menu mode="inline" defaultSelectedKeys={["home"]} style={{ height: "100%", borderRight: 0 }} items={sidebarItems} />
-        </Sider>
+          <Menu mode="vertical" defaultSelectedKeys={["home"]} items={sidebarItems} />
+        </Drawer>
 
         {/* Main Content Area */}
-        <Layout style={{ marginLeft: 250, marginTop: "64px", minHeight: "calc(100vh - 120px)", overflowY: "auto" }}>
-          <Content style={{ padding: "20px" }}>
-            {children}
-          </Content>
+        <Layout style={{ marginLeft: isMobile ? 0 : 200, marginTop: "64px", minHeight: "calc(100vh - 120px)", overflowY: "auto" }}>
+          <Content style={{ padding: "20px" }}>{children}</Content>
 
           {/* Mini Footer */}
           <Footer

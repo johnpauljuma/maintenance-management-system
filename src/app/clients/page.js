@@ -106,12 +106,34 @@ const ClientDashboard = () => {
       <Row gutter={[16, 16]} style={{ marginTop: "20px" }}>
         <Col xs={24} md={12}>
           <Card title="Maintenance Requests by Type" bordered={false}>
-            <Bar data={barChartData} />
+            <Bar
+              data={barChartData}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: { display: true },
+                  tooltip: { enabled: true },
+                },
+              }}
+              style={{ height: "300px" }} // Ensures proper display on mobile
+            />
           </Card>
         </Col>
         <Col xs={24} md={12}>
           <Card title="Maintenance Trends Over Time" bordered={false}>
-            <Line data={lineChartData} />
+            <Line
+              data={lineChartData}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: { display: true },
+                  tooltip: { enabled: true },
+                },
+              }}
+              style={{ height: "300px" }} // Ensures proper display on mobile
+            />
           </Card>
         </Col>
       </Row>
