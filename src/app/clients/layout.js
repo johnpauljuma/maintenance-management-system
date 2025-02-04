@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Layout, Menu, Avatar, Dropdown, Button, Drawer } from "antd";
 import {
   BellOutlined,
@@ -17,24 +18,36 @@ import { supabase } from "../../../lib/supabase";
 const { Header, Sider, Content, Footer } = Layout;
 
 const ClientLayout = ({ children }) => {
+  const router = useRouter();
   const [user, setUser] = useState(null);
   const [collapsed, setCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
+      try {
         const { data, error } = await supabase.auth.getUser();
-        
+
         if (error) {
-            console.error("Error fetching user:", error.message);
-            return;
+          console.error("Error fetching user:", error.message);
+          setUser(null);
+          return;
         }
-        
-        if (data?.user) {
-            setUser(data.user);
+
+        if (!data?.user) {
+          console.warn("No user session found, redirecting to login...");
+          router.push("/login"); // Redirect if no user session
+          return;
         }
+
+        setUser(data.user);
+      } catch (err) {
+        console.error("Unexpected error fetching user:", err);
+      }
     };
+
     fetchUser();
+  
 
     // Detect mobile view
     const handleResize = () => {
@@ -43,10 +56,14 @@ const ClientLayout = ({ children }) => {
     handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-  }, []);
+  }, [router]);
 
   const handleLogout = async () => {
+    await supabase.auth.signOut(); // Log the user out from Supabase
+  
     console.log("User logged out");
+  
+    router.push("/"); // Redirect to landing page
   };
 
   // User dropdown menu
