@@ -10,7 +10,9 @@ import {
   SettingOutlined,
   LogoutOutlined,
   MenuOutlined,
-  PlusCircleOutlined, OrderedListOutlined, QuestionCircleOutlined
+  FileDoneOutlined,
+  ToolOutlined,
+  CheckCircleOutlined,
 } from "@ant-design/icons";
 import Link from "next/link";
 import { supabase } from "../../../lib/supabase";
@@ -18,7 +20,7 @@ import AppFooter from "../components/ClientFooter";
 
 const { Header, Sider, Content, Footer } = Layout;
 
-const ClientLayout = ({ children }) => {
+const TechnicianLayout = ({ children }) => {
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [collapsed, setCollapsed] = useState(false);
@@ -48,7 +50,6 @@ const ClientLayout = ({ children }) => {
     };
 
     fetchUser();
-  
 
     // Detect mobile view
     const handleResize = () => {
@@ -60,10 +61,8 @@ const ClientLayout = ({ children }) => {
   }, [router]);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut(); // Log the user out from Supabase
-  
-    console.log("User logged out");
-  
+    await supabase.auth.signOut();
+    console.log("Technician logged out");
     router.push("/"); // Redirect to landing page
   };
 
@@ -73,7 +72,7 @@ const ClientLayout = ({ children }) => {
       {
         key: "profile",
         label: (
-          <Link href="/clients/profile">
+          <Link href="/technicians/profile">
             <UserOutlined /> Profile
           </Link>
         ),
@@ -81,7 +80,7 @@ const ClientLayout = ({ children }) => {
       {
         key: "settings",
         label: (
-          <Link href="/clients/settings">
+          <Link href="/technicians/settings">
             <SettingOutlined /> Settings
           </Link>
         ),
@@ -98,27 +97,32 @@ const ClientLayout = ({ children }) => {
     ],
   };
 
-  // Sidebar menu items
+  // Sidebar menu items for Technicians
   const sidebarItems = [
     {
-      key: "home",
+      key: "dashboard",
       icon: <HomeOutlined />,
-      label: <Link href="/clients">Dashboard</Link>,
+      label: <Link href="/technicians">Dashboard</Link>,
     },
     {
-      key: "new-requests",
-      icon: <PlusCircleOutlined />, // Represents adding a new request
-      label: <Link href="/clients/new-request">New Request</Link>,
+      key: "tasks",
+      icon: <ToolOutlined />,
+      label: <Link href="/technicians/tasks">Tasks</Link>,
     },
     {
-      key: "requests",
-      icon: <OrderedListOutlined />, // Represents a list of past requests
-      label: <Link href="/clients/requests">My Requests</Link>,
+      key: "inspections",
+      icon: <CheckCircleOutlined />,
+      label: <Link href="/technicians/inspections">Inspections</Link>,
     },
     {
-      key: "help",
-      icon: <QuestionCircleOutlined />, // Represents help/support section
-      label: <Link href="/clients/help">Help</Link>,
+      key: "routine-maintenace",
+      icon: <FileDoneOutlined />,
+      label: <Link href="/technicians/routine-maintenance">Maintenance</Link>,
+    },
+    {
+      key: "settings",
+      icon: <SettingOutlined />,
+      label: <Link href="/technicians/settings">Settings</Link>,
     },
   ];
 
@@ -147,7 +151,7 @@ const ClientLayout = ({ children }) => {
         )}
 
         {/* Middle: App Name */}
-        <span style={{ fontSize: "18px", fontWeight: "bold" }}>AFMMS</span>
+        <span style={{ fontSize: "18px", fontWeight: "bold" }}>AFMMS - Technician Portal</span>
 
         {/* Right Side: Notifications & Profile */}
         <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
@@ -155,7 +159,7 @@ const ClientLayout = ({ children }) => {
 
           <Dropdown menu={userMenu} placement="bottomRight" trigger={["click"]}>
             <Button type="text" style={{ color: "white", display: "flex", alignItems: "center", gap: "10px" }}>
-              {user?.user_metadata?.fullName || "User"}
+              {user?.user_metadata?.fullName || "Technician"}
               <Avatar
                 src={user?.user_metadata?.profilePic || "l"}
                 icon={!user?.user_metadata?.profilePic ? <UserOutlined /> : null}
@@ -180,19 +184,19 @@ const ClientLayout = ({ children }) => {
               boxShadow: "2px 0px 10px rgba(0,0,0,0.1)",
             }}
           >
-            <Menu mode="inline" defaultSelectedKeys={["home"]} style={{ height: "100%", borderRight: 0 }} items={sidebarItems} />
+            <Menu mode="inline" defaultSelectedKeys={["dashboard"]} style={{ height: "100%", borderRight: 0 }} items={sidebarItems} />
           </Sider>
         )}
 
         {/* Sidebar (Mobile View) - Drawer */}
         <Drawer
-          title="Menu"
+          title="Technician Menu"
           placement="left"
           closable
           onClose={() => setCollapsed(false)}
           open={collapsed}
         >
-          <Menu mode="vertical" defaultSelectedKeys={["home"]} items={sidebarItems} />
+          <Menu mode="vertical" defaultSelectedKeys={["dashboard"]} items={sidebarItems} />
         </Drawer>
 
         {/* Main Content Area */}
@@ -225,4 +229,4 @@ const ClientLayout = ({ children }) => {
   );
 };
 
-export default ClientLayout;
+export default TechnicianLayout;
