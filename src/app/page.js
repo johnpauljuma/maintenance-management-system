@@ -4,7 +4,7 @@ import '@ant-design/v5-patch-for-react-19';
 import { Layout, Button, Row, Col, Typography, Card } from "antd";
 import Link from "next/link";
 import { DownOutlined, SettingOutlined, BarChartOutlined, ToolOutlined, DatabaseOutlined } from "@ant-design/icons";
-import AppFooter from './components/ClientFooter';
+import AppFooter from './components/Footer';
 
 const { Header, Content } = Layout;
 const { Title, Paragraph } = Typography;

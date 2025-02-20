@@ -78,19 +78,14 @@ const AdminLayout = ({ children }) => {
       label: <Link href="/admin/technicians">Manage Technicians</Link>,
     },
     {
-      key: "reports",
-      icon: <BarChartOutlined />,
-      label: <Link href="/admin/reports">Reports</Link>,
-    },
-    {
-      key: "tasks",
-      icon: <ToolOutlined />,
-      label: <Link href="/admin/tasks">Task Assignments</Link>,
-    },
-    {
       key: "work-orders",
       icon: <BranchesOutlined />,
       label: <Link href="/admin/work-orders">Work Orders</Link>,
+    },
+    {
+      key: "reports",
+      icon: <BarChartOutlined />,
+      label: <Link href="/admin/reports">Reports</Link>,
     },
     {
       key: "settings",
