@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Layout, Menu, Avatar, Dropdown, Button, Drawer } from "antd";
 import {
   HomeOutlined,
@@ -23,6 +23,7 @@ const { Header, Sider, Content, Footer } = Layout;
 
 const AdminLayout = ({ children }) => {
   const router = useRouter();
+  const pathname = usePathname(); // ✅ Get current route for sidebar highlight
   const [collapsed, setCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -45,6 +46,18 @@ const AdminLayout = ({ children }) => {
   const handleLogout = () => {
     sessionStorage.removeItem("adminLoggedIn");
     router.replace("/admin-login");
+  };
+
+  // Determine active menu key based on current pathname
+  const getMenuKey = () => {
+    if (pathname.startsWith("/admin/faults")) return "manage-requests";
+    if (pathname.startsWith("/admin/technicians")) return "manage-technicians";
+    if (pathname.startsWith("/admin/reports")) return "reports";
+    if (pathname.startsWith("/admin/tasks")) return "tasks";
+    if (pathname.startsWith("/admin/work-orders")) return "work-orders";
+    if (pathname.startsWith("/admin/settings")) return "settings";
+    if (pathname.startsWith("/admin/notifications")) return "notifications";
+    return "dashboard"; // Default to dashboard
   };
 
   // Sidebar menu items
@@ -70,14 +83,14 @@ const AdminLayout = ({ children }) => {
       label: <Link href="/admin/reports">Reports</Link>,
     },
     {
-        key: "tasks",
-        icon: <ToolOutlined />,
-        label: <Link href="/admin/tasks">Task Assignments</Link>,
+      key: "tasks",
+      icon: <ToolOutlined />,
+      label: <Link href="/admin/tasks">Task Assignments</Link>,
     },
     {
-        key: "work-orders",
-        icon: <BranchesOutlined />,
-        label: <Link href="/admin/work-orders">Work Orders</Link>,
+      key: "work-orders",
+      icon: <BranchesOutlined />,
+      label: <Link href="/admin/work-orders">Work Orders</Link>,
     },
     {
       key: "settings",
@@ -85,10 +98,10 @@ const AdminLayout = ({ children }) => {
       label: <Link href="/admin/settings">Settings</Link>,
     },
     {
-        key: "notifications",
-        icon: <BellOutlined />,
-        label: <Link href="/admin/notifications">Notifications</Link>,
-      },
+      key: "notifications",
+      icon: <BellOutlined />,
+      label: <Link href="/admin/notifications">Notifications</Link>,
+    },
   ];
 
   return (
@@ -123,27 +136,26 @@ const AdminLayout = ({ children }) => {
           <BellOutlined style={{ fontSize: "20px", cursor: "pointer" }} />
 
           {/* Profile Dropdown */}
-            <Dropdown
+          <Dropdown
             menu={{
-                items: [
+              items: [
                 {
-                    key: "logout",
-                    label: (
+                  key: "logout",
+                  label: (
                     <Button type="text" onClick={handleLogout} style={{ color: "red" }}>
-                        <LogoutOutlined /> Logout
+                      <LogoutOutlined /> Logout
                     </Button>
-                    ),
+                  ),
                 },
-                ],
+              ],
             }}
             placement="bottomRight"
-            >
-            
+          >
             <Button type="text" style={{ color: "white", display: "flex", alignItems: "center", gap: "10px" }}>
-                Administrator {/* Hardcoded admin name */}
-                <Avatar icon={<UserOutlined />} />
+              Administrator {/* Hardcoded admin name */}
+              <Avatar icon={<UserOutlined />} />
             </Button>
-            </Dropdown>
+          </Dropdown>
         </div>
       </Header>
 
@@ -162,7 +174,7 @@ const AdminLayout = ({ children }) => {
               boxShadow: "2px 0px 10px rgba(0,0,0,0.1)",
             }}
           >
-            <Menu mode="inline" defaultSelectedKeys={["dashboard"]} style={{ height: "100%", borderRight: 0 }} items={sidebarItems} />
+            <Menu mode="inline" selectedKeys={[getMenuKey()]} style={{ height: "100%", borderRight: 0 }} items={sidebarItems} />
           </Sider>
         )}
 
@@ -174,7 +186,7 @@ const AdminLayout = ({ children }) => {
           onClose={() => setCollapsed(false)}
           open={collapsed}
         >
-          <Menu mode="vertical" defaultSelectedKeys={["dashboard"]} items={sidebarItems} />
+          <Menu mode="vertical" selectedKeys={[getMenuKey()]} items={sidebarItems} />
         </Drawer>
 
         {/* Main Content Area */}

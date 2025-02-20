@@ -13,6 +13,7 @@ const AppFooter = () => {
         padding: "40px 80px",
         color: "#fff",
         textAlign: "center",
+        marginBottom: "50px"
       }}
     >
       <Row justify="space-between" align="top" gutter={[32, 32]}>

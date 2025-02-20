@@ -114,7 +114,7 @@ const AdminDashboard = () => {
       {/* 📊 Summary Cards */}
       <Row gutter={[16, 16]} style={{ marginBottom: "20px" }}>
         <Col xs={24} sm={12} md={6}>
-          <Card title="Pending Requests" bordered={false} style={{ textAlign: "center" }}>
+          <Card title="Pending Faults" bordered={false} style={{ textAlign: "center" }}>
             <HourglassOutlined style={{ fontSize: "40px", color: "#ff4d4f" }} />
             <Title level={3}>{maintenanceStats.pending}</Title>
             <Paragraph>Waiting for Technician</Paragraph>
@@ -128,14 +128,14 @@ const AdminDashboard = () => {
           </Card>
         </Col>
         <Col xs={24} sm={12} md={6}>
-          <Card title="Completed Requests" bordered={false} style={{ textAlign: "center" }}>
+          <Card title="Completed Faults" bordered={false} style={{ textAlign: "center" }}>
             <FileDoneOutlined style={{ fontSize: "40px", color: "#52c41a" }} />
             <Title level={3}>{maintenanceStats.completed}</Title>
             <Paragraph>Successfully Resolved</Paragraph>
           </Card>
         </Col>
         <Col xs={24} sm={12} md={6}>
-          <Card title="Total Requests" bordered={false} style={{ textAlign: "center" }}>
+          <Card title="Total Faults" bordered={false} style={{ textAlign: "center" }}>
             <CalendarOutlined style={{ fontSize: "40px", color: "#1890ff" }} />
             <Title level={3}>{maintenanceStats.total}</Title>
             <Paragraph>Overall Requests Logged</Paragraph>

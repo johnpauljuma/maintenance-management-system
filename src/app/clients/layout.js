@@ -1,7 +1,8 @@
 "use client";
 
+import "@ant-design/v5-patch-for-react-19";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Layout, Menu, Avatar, Dropdown, Button, Drawer } from "antd";
 import {
   BellOutlined,
@@ -10,7 +11,9 @@ import {
   SettingOutlined,
   LogoutOutlined,
   MenuOutlined,
-  PlusCircleOutlined, OrderedListOutlined, QuestionCircleOutlined
+  PlusCircleOutlined,
+  OrderedListOutlined,
+  QuestionCircleOutlined,
 } from "@ant-design/icons";
 import Link from "next/link";
 import { supabase } from "../../../lib/supabase";
@@ -20,6 +23,7 @@ const { Header, Sider, Content, Footer } = Layout;
 
 const ClientLayout = ({ children }) => {
   const router = useRouter();
+  const pathname = usePathname(); // ✅ Get current route for sidebar highlight
   const [user, setUser] = useState(null);
   const [collapsed, setCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -48,7 +52,6 @@ const ClientLayout = ({ children }) => {
     };
 
     fetchUser();
-  
 
     // Detect mobile view
     const handleResize = () => {
@@ -61,9 +64,7 @@ const ClientLayout = ({ children }) => {
 
   const handleLogout = async () => {
     await supabase.auth.signOut(); // Log the user out from Supabase
-  
     console.log("User logged out");
-  
     router.push("/"); // Redirect to landing page
   };
 
@@ -98,6 +99,14 @@ const ClientLayout = ({ children }) => {
     ],
   };
 
+  // Determine active menu key based on current pathname
+  const getMenuKey = () => {
+    if (pathname.startsWith("/clients/new-request")) return "new-requests";
+    if (pathname.startsWith("/clients/my-requests")) return "my-requests";
+    if (pathname.startsWith("/clients/help")) return "help";
+    return "home"; // Default to home
+  };
+
   // Sidebar menu items
   const sidebarItems = [
     {
@@ -107,17 +116,17 @@ const ClientLayout = ({ children }) => {
     },
     {
       key: "new-requests",
-      icon: <PlusCircleOutlined />, // Represents adding a new request
+      icon: <PlusCircleOutlined />,
       label: <Link href="/clients/new-request">New Request</Link>,
     },
     {
-      key: "requests",
-      icon: <OrderedListOutlined />, // Represents a list of past requests
-      label: <Link href="/clients/requests">My Requests</Link>,
+      key: "my-requests",
+      icon: <OrderedListOutlined />,
+      label: <Link href="/clients/my-requests">My Requests</Link>,
     },
     {
       key: "help",
-      icon: <QuestionCircleOutlined />, // Represents help/support section
+      icon: <QuestionCircleOutlined />,
       label: <Link href="/clients/help">Help</Link>,
     },
   ];
@@ -180,7 +189,7 @@ const ClientLayout = ({ children }) => {
               boxShadow: "2px 0px 10px rgba(0,0,0,0.1)",
             }}
           >
-            <Menu mode="inline" defaultSelectedKeys={["home"]} style={{ height: "100%", borderRight: 0 }} items={sidebarItems} />
+            <Menu mode="inline" selectedKeys={[getMenuKey()]} style={{ height: "100%", borderRight: 0 }} items={sidebarItems} />
           </Sider>
         )}
 
@@ -192,7 +201,7 @@ const ClientLayout = ({ children }) => {
           onClose={() => setCollapsed(false)}
           open={collapsed}
         >
-          <Menu mode="vertical" defaultSelectedKeys={["home"]} items={sidebarItems} />
+          <Menu mode="vertical" selectedKeys={[getMenuKey()]} items={sidebarItems} />
         </Drawer>
 
         {/* Main Content Area */}

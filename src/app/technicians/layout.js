@@ -1,7 +1,8 @@
 "use client";
 
+import "@ant-design/v5-patch-for-react-19";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Layout, Menu, Avatar, Dropdown, Button, Drawer } from "antd";
 import {
   BellOutlined,
@@ -16,12 +17,13 @@ import {
 } from "@ant-design/icons";
 import Link from "next/link";
 import { supabase } from "../../../lib/supabase";
-import AppFooter from "../components/ClientFooter";
+import AppFooter from "../components/TechnicianFooter";
 
 const { Header, Sider, Content, Footer } = Layout;
 
 const TechnicianLayout = ({ children }) => {
   const router = useRouter();
+  const pathname = usePathname(); // ✅ Get current route for sidebar highlight
   const [user, setUser] = useState(null);
   const [collapsed, setCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -97,6 +99,15 @@ const TechnicianLayout = ({ children }) => {
     ],
   };
 
+  // Determine active menu key based on current pathname
+  const getMenuKey = () => {
+    if (pathname.startsWith("/technicians/tasks")) return "tasks";
+    if (pathname.startsWith("/technicians/inspections")) return "inspections";
+    if (pathname.startsWith("/technicians/routine-maintenance")) return "routine-maintenance";
+    if (pathname.startsWith("/technicians/settings")) return "settings";
+    return "dashboard"; // Default to dashboard
+  };
+
   // Sidebar menu items for Technicians
   const sidebarItems = [
     {
@@ -113,11 +124,6 @@ const TechnicianLayout = ({ children }) => {
       key: "inspections",
       icon: <CheckCircleOutlined />,
       label: <Link href="/technicians/inspections">Inspections</Link>,
-    },
-    {
-      key: "routine-maintenace",
-      icon: <FileDoneOutlined />,
-      label: <Link href="/technicians/routine-maintenance">Maintenance</Link>,
     },
     {
       key: "settings",
@@ -184,7 +190,7 @@ const TechnicianLayout = ({ children }) => {
               boxShadow: "2px 0px 10px rgba(0,0,0,0.1)",
             }}
           >
-            <Menu mode="inline" defaultSelectedKeys={["dashboard"]} style={{ height: "100%", borderRight: 0 }} items={sidebarItems} />
+            <Menu mode="inline" selectedKeys={[getMenuKey()]} style={{ height: "100%", borderRight: 0 }} items={sidebarItems} />
           </Sider>
         )}
 
@@ -196,7 +202,7 @@ const TechnicianLayout = ({ children }) => {
           onClose={() => setCollapsed(false)}
           open={collapsed}
         >
-          <Menu mode="vertical" defaultSelectedKeys={["dashboard"]} items={sidebarItems} />
+          <Menu mode="vertical" selectedKeys={[getMenuKey()]} items={sidebarItems} />
         </Drawer>
 
         {/* Main Content Area */}

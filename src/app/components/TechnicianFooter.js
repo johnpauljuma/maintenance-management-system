@@ -13,6 +13,7 @@ const AppFooter = () => {
         padding: "40px 80px",
         color: "#fff",
         textAlign: "center",
+        marginBottom: "50px"
       }}
     >
       <Row justify="space-between" align="top" gutter={[32, 32]}>
@@ -60,7 +61,7 @@ const AppFooter = () => {
             Quick Links
           </Title>
           <Space direction="vertical" size="middle">
-            {["Dashboard", "New Request", "My Requests", "Settings", "Help"].map((item, index) => (
+            {["Dashboard", "Tasks", "Inspections", "Settings", "Help"].map((item, index) => (
                 <Link
                 key={index}
                 href={`/${item.toLowerCase().replace(" ", "-")}`}
