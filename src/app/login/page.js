@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Layout, Form, Input, Button, Row, Col, Card, Typography, message } from "antd";
+import { Layout, Form, Input, Button, Card, Typography, message } from "antd";
 import Link from "next/link";
 import { MailOutlined, LockOutlined } from "@ant-design/icons";
 import { supabase } from "../../../lib/supabase";
@@ -65,7 +65,12 @@ const Login = () => {
       message.error(error.message);
     } else {
       message.success("Login successful!");
-      router.push("/clients"); // Redirect to user dashboard after login
+
+      // Store user session in sessionStorage
+      sessionStorage.setItem("clientLoggedIn", "true");
+      sessionStorage.setItem("clientDetails", JSON.stringify(data.user));
+
+      router.push("/clients"); // Redirect to client dashboard
     }
 
     setLoading(false);

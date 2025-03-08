@@ -1,70 +1,119 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Form, Input, Button, Card, Switch, TimePicker, message, Typography, Divider } from "antd";
-import { UserOutlined, LockOutlined, BellOutlined, ClockCircleOutlined } from "@ant-design/icons";
+import { Form, Input, Button, Card, Switch, TimePicker, message, Typography, Divider, Select } from "antd";
+import { UserOutlined, LockOutlined, BellOutlined, ClockCircleOutlined, BulbOutlined } from "@ant-design/icons";
 import { supabase } from "../../../../lib/supabase";
 import dayjs from "dayjs";
+import bcrypt from "bcryptjs";
 
 const { Title } = Typography;
+const { Option } = Select;
 
 const TechnicianSettings = () => {
   const [loading, setLoading] = useState(false);
   const [technician, setTechnician] = useState(null);
-  const [availability, setAvailability] = useState({
-    isAvailable: true,
-    startTime: "08:00",
-    endTime: "17:00",
-  });
-
+  const [availability, setAvailability] = useState(true);
+  const [theme, setTheme] = useState("system"); // Default to system theme
   const [form] = Form.useForm();
 
   useEffect(() => {
     const fetchTechnician = async () => {
-      // Simulated technician data for UI
-      const dummyTechnician = {
-        fullName: "John Doe",
-        email: "johndoe@example.com",
-        phone: "+1 (555) 123-4567",
-        receiveNotifications: true,
-      };
-      setTechnician(dummyTechnician);
-      form.setFieldsValue(dummyTechnician);
+      const technicianId = sessionStorage.getItem("technicianId");
+      if (!technicianId) {
+        message.error("Technician not logged in.");
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("technicians")
+        .select("*")
+        .eq("technician_id", technicianId)
+        .single();
+
+      if (error || !data) {
+        message.error("Failed to fetch settings.");
+        return;
+      }
+
+      setTechnician(data);
+      setAvailability(data.availability === "yes");
+      form.setFieldsValue({
+        fullName: data.full_name,
+        email: data.email,
+        phone: data.phone,
+        receiveNotifications: data.receive_notifications,
+      });
+
+      // Load theme preference
+      const storedTheme = localStorage.getItem("theme");
+      if (storedTheme) setTheme(storedTheme);
     };
 
     fetchTechnician();
   }, [form]);
 
-  const handleProfileUpdate = async (values) => {
-    setLoading(true);
-
-    // Simulate API call delay
-    setTimeout(() => {
-      setTechnician(values);
-      message.success("Profile updated successfully!");
-      setLoading(false);
-    }, 1500);
-  };
-
+  /** 🔐 Handle Password Change */
   const handlePasswordChange = async (values) => {
-    if (values.newPassword !== values.confirmPassword) {
-      message.error("Passwords do not match!");
+    const technicianId = sessionStorage.getItem("technicianId");
+
+    const { data, error } = await supabase
+      .from("technicians")
+      .select("password")
+      .eq("technician_id", technicianId)
+      .single();
+
+    if (error || !data) {
+      message.error("Failed to verify password.");
       return;
     }
 
-    setLoading(true);
-    setTimeout(() => {
+    const isMatch = await bcrypt.compare(values.currentPassword, data.password);
+    if (!isMatch) {
+      message.error("Current password is incorrect.");
+      return;
+    }
+
+    if (values.newPassword !== values.confirmPassword) {
+      message.error("New passwords do not match.");
+      return;
+    }
+
+    const hashedPassword = await bcrypt.hash(values.newPassword, 10);
+    const { error: updateError } = await supabase
+      .from("technicians")
+      .update({ password: hashedPassword })
+      .eq("technician_id", technicianId);
+
+    if (updateError) {
+      message.error("Failed to update password.");
+    } else {
       message.success("Password updated successfully!");
-      setLoading(false);
-    }, 1500);
+    }
   };
 
-  const handleAvailabilityChange = (field, value) => {
-    setAvailability((prev) => ({ ...prev, [field]: value }));
-  };
+  /** ✅ Update Availability */
+  const handleAvailabilityChange = async (checked) => {
+    setAvailability(checked);
+    const technicianId = sessionStorage.getItem("technicianId");
 
-  const saveAvailability = () => {
-    message.success("Availability updated successfully!");
+    const { error } = await supabase
+      .from("technicians")
+      .update({ availability: checked ? "yes" : "no" })
+      .eq("technician_id", technicianId);
+
+    if (error) {
+      message.error("Failed to update availability.");
+    } else {
+      message.success(`Availability updated to ${checked ? "Active" : "Inactive"}`);
+    }
+  };
+  
+  /** 🎨 Handle Theme Change */
+  const handleThemeChange = (value) => {
+    setTheme(value);
+    localStorage.setItem("theme", value);
+    document.documentElement.setAttribute("data-theme", value);
   };
 
   return (
@@ -73,41 +122,19 @@ const TechnicianSettings = () => {
         Technician Settings
       </Title>
 
-      {/* 🔹 Profile Information Section */}
-      <Card bordered={false} style={{ boxShadow: "0px 2px 10px rgba(0,0,0,0.1)", marginBottom: "20px" }}>
-        <Title level={4}>Profile Information</Title>
-        <Form form={form} layout="vertical" onFinish={handleProfileUpdate}>
-          <Form.Item label="Full Name" name="fullName" rules={[{ required: true, message: "Please enter your full name!" }]}>
-            <Input prefix={<UserOutlined />} placeholder="Enter full name" />
-          </Form.Item>
-
-          <Form.Item label="Email" name="email" rules={[{ required: true, type: "email", message: "Enter a valid email!" }]}>
-            <Input prefix={<UserOutlined />} placeholder="Enter email" disabled />
-          </Form.Item>
-
-          <Form.Item label="Phone Number" name="phone" rules={[{ required: true, message: "Enter your phone number!" }]}>
-            <Input prefix={<UserOutlined />} placeholder="Enter phone number" />
-          </Form.Item>
-
-          <Form.Item>
-            <Button type="primary" htmlType="submit" loading={loading} block>
-              Update Profile
-            </Button>
-          </Form.Item>
-        </Form>
-      </Card>
-
-      <Divider />
-
-      {/* 🔹 Password Update Section */}
+      {/* 🔐 Password Update Section */}
       <Card bordered={false} style={{ boxShadow: "0px 2px 10px rgba(0,0,0,0.1)", marginBottom: "20px" }}>
         <Title level={4}>Change Password</Title>
         <Form layout="vertical" onFinish={handlePasswordChange}>
+          <Form.Item label="Current Password" name="currentPassword" rules={[{ required: true, message: "Enter current password!" }]}>
+            <Input.Password prefix={<LockOutlined />} placeholder="Enter current password" />
+          </Form.Item>
+
           <Form.Item label="New Password" name="newPassword" rules={[{ required: true, message: "Enter new password!" }]}>
             <Input.Password prefix={<LockOutlined />} placeholder="Enter new password" />
           </Form.Item>
 
-          <Form.Item label="Confirm Password" name="confirmPassword" rules={[{ required: true, message: "Confirm your password!" }]}>
+          <Form.Item label="Confirm Password" name="confirmPassword" rules={[{ required: true, message: "Confirm new password!" }]}>
             <Input.Password prefix={<LockOutlined />} placeholder="Confirm new password" />
           </Form.Item>
 
@@ -121,7 +148,7 @@ const TechnicianSettings = () => {
 
       <Divider />
 
-      {/* 🔹 Notification Preferences */}
+      {/* 🔔 Notification Preferences */}
       <Card bordered={false} style={{ boxShadow: "0px 2px 10px rgba(0,0,0,0.1)", marginBottom: "20px" }}>
         <Title level={4}>Notification Preferences</Title>
         <Form layout="vertical">
@@ -139,36 +166,43 @@ const TechnicianSettings = () => {
 
       <Divider />
 
-      {/* 🔹 Availability Section */}
-      <Card bordered={false} style={{ boxShadow: "0px 2px 10px rgba(0,0,0,0.1)" }}>
+      {/* ✅ Availability Section */}
+      <Card bordered={false} style={{ boxShadow: "0px 2px 10px rgba(0,0,0,0.1)", marginBottom: "20px" }}>
         <Title level={4}>Availability Settings</Title>
-
-        <Form layout="vertical">
+        <Form form={form} layout="vertical">
           <Form.Item label="Available for Tasks">
             <Switch
-              checked={availability.isAvailable}
-              onChange={(checked) => handleAvailabilityChange("isAvailable", checked)}
-            />
-          </Form.Item>
-
-          <Form.Item label="Working Hours">
-            <TimePicker.RangePicker
-              format="HH:mm"
-              value={[dayjs(availability.startTime, "HH:mm"), dayjs(availability.endTime, "HH:mm")]}
-              onChange={(times) => {
-                if (times) {
-                  handleAvailabilityChange("startTime", times[0].format("HH:mm"));
-                  handleAvailabilityChange("endTime", times[1].format("HH:mm"));
-                }
-              }}
-              prefix={<ClockCircleOutlined />}
+              checked={availability}
+              onChange={(checked) => setAvailability(checked)}
             />
           </Form.Item>
 
           <Form.Item>
-            <Button type="primary" onClick={saveAvailability} block>
+            <Button type="primary" onClick={handleAvailabilityChange} block>
               Save Availability
             </Button>
+          </Form.Item>
+        </Form>
+      </Card>
+
+      <Divider />
+
+      {/* 🎨 Personalization */}
+      <Card bordered={false} style={{ boxShadow: "0px 2px 10px rgba(0,0,0,0.1)" }}>
+        <Title level={4}>Theme Preferences</Title>
+        <Form layout="vertical">
+          <Form.Item label="Choose Theme">
+            <Select value={theme} onChange={handleThemeChange} style={{ width: "100%" }}>
+              <Option value="light">
+                🌞 Light Mode
+              </Option>
+              <Option value="dark">
+                🌙 Dark Mode
+              </Option>
+              <Option value="system">
+                🖥 System Default
+              </Option>
+            </Select>
           </Form.Item>
         </Form>
       </Card>

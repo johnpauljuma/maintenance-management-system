@@ -3,7 +3,7 @@
 import "@ant-design/v5-patch-for-react-19";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Layout, Menu, Avatar, Dropdown, Button, Drawer } from "antd";
+import { Layout, Menu, Avatar, Dropdown, Button, Drawer, Spin } from "antd";
 import {
   BellOutlined,
   UserOutlined,
@@ -23,31 +23,40 @@ const { Header, Sider, Content, Footer } = Layout;
 
 const ClientLayout = ({ children }) => {
   const router = useRouter();
-  const pathname = usePathname(); // ✅ Get current route for sidebar highlight
+  const pathname = usePathname();
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [collapsed, setCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
       try {
+        // Retrieve stored user session from sessionStorage
+        const storedUser = sessionStorage.getItem("clientDetails");
+
+        if (storedUser) {
+          setUser(JSON.parse(storedUser));
+          setLoading(false);
+          return;
+        }
+
+        // If no stored session, fetch from Supabase
         const { data, error } = await supabase.auth.getUser();
 
-        if (error) {
-          console.error("Error fetching user:", error.message);
-          setUser(null);
-          return;
-        }
-
-        if (!data?.user) {
+        if (error || !data?.user) {
           console.warn("No user session found, redirecting to login...");
-          router.push("/login"); // Redirect if no user session
+          router.replace("/login"); // Redirect if no session
           return;
         }
 
+        // Store fetched user details in sessionStorage
+        sessionStorage.setItem("clientDetails", JSON.stringify(data.user));
         setUser(data.user);
       } catch (err) {
         console.error("Unexpected error fetching user:", err);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -63,8 +72,8 @@ const ClientLayout = ({ children }) => {
   }, [router]);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut(); // Log the user out from Supabase
-    console.log("User logged out");
+    await supabase.auth.signOut();
+    sessionStorage.removeItem("clientDetails"); // Clear stored session
     router.push("/"); // Redirect to landing page
   };
 
@@ -131,6 +140,14 @@ const ClientLayout = ({ children }) => {
     },
   ];
 
+  if (loading) {
+    return (
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
+        <Spin size="large" />
+      </div>
+    );
+  }
+
   return (
     <Layout style={{ minHeight: "100vh" }}>
       {/* Navbar */}
@@ -194,13 +211,7 @@ const ClientLayout = ({ children }) => {
         )}
 
         {/* Sidebar (Mobile View) - Drawer */}
-        <Drawer
-          title="Menu"
-          placement="left"
-          closable
-          onClose={() => setCollapsed(false)}
-          open={collapsed}
-        >
+        <Drawer title="Menu" placement="left" closable onClose={() => setCollapsed(false)} open={collapsed}>
           <Menu mode="vertical" selectedKeys={[getMenuKey()]} items={sidebarItems} />
         </Drawer>
 

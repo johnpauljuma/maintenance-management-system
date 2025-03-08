@@ -1,11 +1,12 @@
 "use client";
 
-import '@ant-design/v5-patch-for-react-19';
-import { useState, useEffect } from "react";
+import "@ant-design/v5-patch-for-react-19";
+import { useState } from "react";
 import { Layout, Form, Input, Button, Card, Typography, message } from "antd";
-import { MailOutlined, LockOutlined } from "@ant-design/icons";
+import { IdcardOutlined, LockOutlined } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../../lib/supabase";
+import bcrypt from "bcryptjs";
 import Link from "next/link";
 
 const { Title } = Typography;
@@ -15,30 +16,44 @@ const TechnicianLogin = () => {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  // ✅ Ensure we only redirect **after** checking session storage
-  useEffect(() => {
-    const isTechnicianLoggedIn = sessionStorage.getItem("technicianLoggedIn");
-    if (isTechnicianLoggedIn === "true") {
-      router.replace("/technicians"); // Use `replace` to avoid history stack issues
-    }
-  }, [router]);
-
   const onFinish = async (values) => {
     setLoading(true);
-
-    const { email, password } = values;
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-
-    if (error) {
-      message.error("Invalid email or password!");
-    } else {
-      sessionStorage.setItem("technicianLoggedIn", "true");
-      message.success("Login successful!");
-      router.replace("/technicians"); // Redirect to technician dashboard
+    const { technicianId, password } = values;
+  
+    // ✅ Step 1: Fetch technician data by ID
+    const { data: technician, error } = await supabase
+      .from("technicians")
+      .select("*") // Fetch all details for session storage
+      .eq("technician_id", technicianId)
+      .limit(1)
+      .single();
+  
+    if (error || !technician) {
+      message.error("Technician ID not found!");
+      setLoading(false);
+      return;
     }
+  
+    // ✅ Step 2: Verify password with bcrypt
+    const isPasswordValid = await bcrypt.compare(password, technician.password);
+    if (!isPasswordValid) {
+      message.error("Invalid password!");
+      setLoading(false);
+      return;
+    }
+  
+    // ✅ Step 3: Store technician details in sessionStorage
+    sessionStorage.setItem("technicianId", technicianId); 
+    sessionStorage.setItem("technicianLoggedIn", "true");
+    sessionStorage.setItem("technician", JSON.stringify(technician)); // Store entire technician object
+    
+    message.success("Login successful!");
     setLoading(false);
+  
+    // ✅ Redirect to technician dashboard
+    router.replace("/technicians");
   };
-
+  
   return (
     <Layout style={{ backgroundColor: "#02245B", minHeight: "100vh" }}>
       <Header
@@ -69,11 +84,11 @@ const TechnicianLogin = () => {
           <Title level={2} style={{ marginBottom: "20px", color: "#02245B" }}>Technician Login</Title>
 
           <Form layout="vertical" onFinish={onFinish}>
-            <Form.Item label="Email" name="email" rules={[{ required: true, message: "Please enter your email!" }]}>
-              <Input prefix={<MailOutlined />} placeholder="Enter your email" />
+            <Form.Item label="Technician ID" name="technicianId" rules={[{ required: true, message: "Enter your Technician ID!" }]}>
+              <Input prefix={<IdcardOutlined />} placeholder="Enter your Technician ID" />
             </Form.Item>
 
-            <Form.Item label="Password" name="password" rules={[{ required: true, message: "Please enter your password!" }]}>
+            <Form.Item label="Password" name="password" rules={[{ required: true, message: "Enter your password!" }]}>
               <Input.Password prefix={<LockOutlined />} placeholder="Enter your password" />
             </Form.Item>
 
@@ -84,7 +99,6 @@ const TechnicianLogin = () => {
             </Form.Item>
           </Form>
 
-          {/* Forgot Password Link */}
           <Link href="/technicians/forgot-password" style={{ color: "#1890ff" }}>
             Forgot Password?
           </Link>

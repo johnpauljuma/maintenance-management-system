@@ -18,32 +18,46 @@ const AdminLogin = () => {
     setLoading(true);
     const { email, password } = values;
 
-    // 🔍 Query Supabase for admin credentials
-    const { data, error } = await supabase
-      .from("admins")
-      .select("id, password")
-      .eq("email", email)
-      .single();
+    try {
+      // ✅ Step 1: Authenticate Admin with Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (error || !data) {
-      message.error("Invalid email or password!");
+      if (authError || !authData.user) {
+        message.error("Invalid email or password!");
+        setLoading(false);
+        return;
+      }
+
+      const adminId = authData.user.id;
+
+      // ✅ Step 2: Check if User is an Admin
+      const { data: adminData, error: adminError } = await supabase
+        .from("admins")
+        .select("role")
+        .eq("id", adminId)
+        .single();
+
+      if (adminError || !adminData || adminData.role !== "admin") {
+        message.error("Access denied! Admins only.");
+        setLoading(false);
+        return;
+      }
+
+      // ✅ Step 3: Store Admin Session
+      sessionStorage.setItem("adminLoggedIn", "true");
+      sessionStorage.setItem("adminId", adminId);
+
+      message.success("Login successful!");
+      router.replace("/admin"); // Redirect to admin panel
+    } catch (error) {
+      console.error("Login Error:", error.message);
+      message.error("Something went wrong. Try again.");
+    } finally {
       setLoading(false);
-      return;
     }
-
-    // 🔑 Simple password check (Should use hashing instead)
-    if (data.password !== password) {
-      message.error("Incorrect password!");
-      setLoading(false);
-      return;
-    }
-
-    // ✅ Store session in localStorage
-    sessionStorage.setItem("adminLoggedIn", "true");
-    sessionStorage.setItem("adminId", data.id);
-
-    message.success("Login successful!");
-    router.replace("/admin"); // Redirect to admin panel
   };
 
   return (

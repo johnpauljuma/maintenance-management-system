@@ -21,40 +21,100 @@ const NewRequest = () => {
   };
 
   const onFinish = async (values) => {
-    setLoading(true);
+  setLoading(true);
 
-    try {
-      const { data, error } = await supabase.from("requests").insert([
-        {
-          title: values.title,
-          category: values.category,
-          description: values.description,
-          preferred_date: values.preferredDate?.format("YYYY-MM-DD"),
-          urgency: values.urgency,
-          image_url: fileList.length > 0 ? fileList[0].url : null, // Handle image upload
-          status: "Pending", // Default status
-          created_at: new Date(),
-        },
-      ]);
+  try {
+    // Get the logged-in user
+    const { data: authData, error: authError } = await supabase.auth.getUser();
 
-      if (error) {
-        throw new Error(error.message);
+    if (authError || !authData?.user) {
+      throw new Error("User not authenticated. Please log in.");
+    }
+
+    const userId = authData.user.id; // Extract the user ID
+
+    let imageUrl = null;
+
+    // Check if there's a file to upload
+    if (fileList.length > 0) {
+      const file = fileList[0].originFileObj;
+      const fileExt = file.name.split(".").pop();
+      const fileName = `request-${Date.now()}.${fileExt}`;
+      const filePath = `requests/${fileName}`;
+
+      // Upload image to Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("request-images")
+        .upload(filePath, file);
+
+      if (uploadError) {
+        throw new Error(`Image upload failed: ${uploadError.message}`);
       }
 
-      message.success("Request submitted successfully!");
-      router.push("/clients/requests"); // Redirect to My Requests page
-    } catch (error) {
-      message.error("Failed to submit request. Please try again.");
-      console.error("Error submitting request:", error.message);
-    } finally {
-      setLoading(false);
+      // Get the public URL of the uploaded image
+      const { data: publicUrlData } = supabase.storage
+        .from("request-images")
+        .getPublicUrl(filePath);
+
+      imageUrl = publicUrlData.publicUrl;
     }
-  };
+
+    // Insert form data into Supabase database
+    const { data, error } = await supabase.from("requests").insert([
+      {
+        client: values.name,
+        phone: values.phone,
+        title: values.title,
+        category: values.category,
+        description: values.description,
+        preferred_date: values.preferredDate?.format("YYYY-MM-DD"),
+        urgency: values.urgency,
+        location: values.location,
+        image_url: imageUrl, // Store uploaded image URL
+        status: "Pending", // Default status
+        created_at: new Date(),
+        user_id: userId, // ✅ Store the logged-in user's ID
+      },
+    ]);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    message.success("Request submitted successfully!");
+    router.push("/clients/my-requests"); // Redirect after submission
+  } catch (error) {
+    message.error(`Failed to submit request: ${error.message}`);
+    console.error("Submission error:", error);
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <Card title="New Maintenance Request" bordered={false} style={{ maxWidth: 700, margin: "auto", marginTop: 20 }}>
       <Form layout="vertical" onFinish={onFinish}>
-        {/* First Row: Request Title & Category */}
+        <Row gutter={16}>
+          <Col xs={24} md={12}>
+            <Form.Item
+              label="Full Name"
+              name="name"
+              rules={[{ required: true, message: "Please enter your name!" }]}
+            >
+              <Input placeholder="Enter client name" />
+            </Form.Item>
+          </Col>
+          <Col xs={24} md={12}>
+            <Form.Item
+              label="Phone Number"
+              name="phone"
+              rules={[{ required: true, message: "Please enter your phone number!" }]}
+            >
+              <Input placeholder="Enter phone number" />
+            </Form.Item>
+          </Col>
+        </Row>
+
         <Row gutter={16}>
           <Col xs={24} md={12}>
             <Form.Item
@@ -67,7 +127,7 @@ const NewRequest = () => {
           </Col>
           <Col xs={24} md={12}>
             <Form.Item
-              label="Category"
+              label="Service Category"
               name="category"
               rules={[{ required: true, message: "Please select a category!" }]}
             >
@@ -119,7 +179,7 @@ const NewRequest = () => {
         </Row>
 
         {/* Image Upload */}
-        <Form.Item label="Upload Image (Optional)" name="image">
+        <Form.Item label="Upload Fault Image (Optional)" name="image">
           <Upload.Dragger
             name="file"
             listType="picture"

@@ -1,5 +1,6 @@
 "use client";
 
+import "@ant-design/v5-patch-for-react-19";
 import { useState } from "react";
 import { Layout, Form, Input, Button, Row, Col, Card, Select, Typography, Divider } from "antd";
 import Link from "next/link";
@@ -50,16 +51,6 @@ const styles = {
 
 const Signup = () => {
   const [loading, setLoading] = useState(false);
-
-  // 🔹 Google Sign-In Function
-  const handleGoogleSignIn = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/clients/dashboard` }, 
-    });
-
-    if (error) console.error("Google Sign-In Error:", error.message);
-  };
 
   const onFinish = async (values) => {
     setLoading(true);
@@ -210,10 +201,7 @@ const Signup = () => {
             </Form.Item>
           </Form>
 
-          <Divider style={{color: "#A61B22", }}>or</Divider>
-          <Button onClick={handleGoogleSignIn} icon={<GoogleOutlined />} block style={{ margin: "auto",marginBottom: "20px", boxShadow: "0 0 5px", width: "40%", display: "flex"}}>
-            Continue with Google
-          </Button>
+          <Divider style={{color: "#A61B22", }}>afmms</Divider>
 
           {/* Already have an account? */}
           <div style={styles.footer}>

@@ -1,5 +1,5 @@
 import { Geist, Geist_Mono } from "next/font/google";
-import { Layout } from "antd";
+import { Layout, ConfigProvider, App } from "antd";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -17,13 +17,24 @@ export const metadata = {
   description: "A platform to manage maintenance requests efficiently",
 };
 
+const themeConfig = {
+  token: {
+    colorPrimary: "#A61B22", // Change primary color
+  },
+};
+
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        <Layout className="min-h-screen">
-          <main>{children}</main>
-        </Layout>
+        <ConfigProvider theme={themeConfig}>
+          <App>
+            <Layout className="min-h-screen">
+              <main>{children}</main>
+            </Layout>
+          </App>
+            
+        </ConfigProvider>
       </body>
     </html>
   );

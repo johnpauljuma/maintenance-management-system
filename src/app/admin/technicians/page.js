@@ -1,44 +1,65 @@
 "use client";
 
+import "@ant-design/v5-patch-for-react-19";
 import { useEffect, useState } from "react";
-import { Card, Row, Col, Table, Tag, Button, Select, Input } from "antd";
+import { Card, Row, Col, Table, Tag, Button, message } from "antd";
 import {
   UserOutlined,
   CheckCircleOutlined,
   ToolOutlined,
   StopOutlined,
-  SearchOutlined,
+  PlusOutlined,
 } from "@ant-design/icons";
-
-const { Option } = Select;
+import { supabase } from "../../../../lib/supabase";
+import AddTechnicianModal from "../../components/AddTechnicianModal";
 
 const ManageTechnicians = () => {
   const [loading, setLoading] = useState(false);
   const [technicians, setTechnicians] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // Fetch Technicians from Supabase
   useEffect(() => {
+    const fetchTechnicians = async () => {
+      setLoading(true);
+      const { data, error } = await supabase.from("technicians").select("*");
+
+      if (error) {
+        console.error("Error fetching technicians:", error.message);
+        message.error("Failed to load technicians.");
+      } else {
+        setTechnicians(data);
+      }
+      setLoading(false);
+    };
+
+    fetchTechnicians();
+  }, []);
+
+  // Handle adding a new technician
+  const handleAddTechnician = async (newTechnician) => {
     setLoading(true);
 
-    // Dummy Data - Technicians Overview & Table
-    setTimeout(() => {
-      setTechnicians([
-        { id: "T001", name: "John Doe", specialization: "Electrical", status: "Available", rating: 4.5 },
-        { id: "T002", name: "Jane Smith", specialization: "Plumbing", status: "Assigned", rating: 4.0 },
-        { id: "T003", name: "Mike Johnson", specialization: "HVAC", status: "Available", rating: 4.8 },
-        { id: "T004", name: "Sarah Lee", specialization: "Cleaning", status: "Inactive", rating: 3.5 },
-        { id: "T005", name: "Robert Brown", specialization: "General Repairs", status: "Assigned", rating: 4.2 },
-        { id: "T006", name: "Emily Wilson", specialization: "Electrical", status: "Available", rating: 4.9 },
-      ]);
+    const { data, error } = await supabase.from("technicians").insert([newTechnician]).select();
 
-      setLoading(false);
-    }, 1500);
-  }, []);
+    if (error) {
+      console.error("Error adding technician:", error.message);
+      message.error("Failed to add technician.");
+    } else {
+      setTechnicians([...technicians, ...data]);
+      message.success("Technician added successfully!");
+    }
+
+    setLoading(false);
+  };
 
   // Table Columns
   const columns = [
-    { title: "Technician ID", dataIndex: "id", key: "id" },
+    { title: "Technician ID", dataIndex: "technician_id", key: "technician_id" },
     { title: "Name", dataIndex: "name", key: "name" },
+    { title: "Email", dataIndex: "email", key: "email" },
     { title: "Specialization", dataIndex: "specialization", key: "specialization" },
+    { title: "Location", dataIndex: "location", key: "location" },
     {
       title: "Status",
       dataIndex: "status",
@@ -51,7 +72,7 @@ const ManageTechnicians = () => {
         return <Tag color={color}>{status}</Tag>;
       },
     },
-    { title: "Rating", dataIndex: "rating", key: "rating", render: (rating) => `${rating} ⭐` },
+    { title: "Rating", dataIndex: "rating", key: "rating", render: (rating) => `${rating || 0} ⭐` },
     {
       title: "Action",
       key: "action",
@@ -65,7 +86,17 @@ const ManageTechnicians = () => {
 
   return (
     <div style={{ padding: "20px" }}>
-      <h2 style={{ textAlign: "center", marginBottom: "20px" }}>Manage Technicians</h2>
+      {/* 🔹 Page Title & Add Button */}
+      <Row justify="space-between" align="middle" style={{ marginBottom: "20px" }}>
+        <Col>
+          <h2>Manage Technicians</h2>
+        </Col>
+        <Col>
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsModalOpen(true)}>
+            Add New Technician
+          </Button>
+        </Col>
+      </Row>
 
       {/* 🔹 Overview Cards */}
       <Row gutter={[16, 16]}>
@@ -81,7 +112,7 @@ const ManageTechnicians = () => {
           <Card bordered={false} style={{ textAlign: "center", boxShadow: "0px 2px 10px rgba(0,0,0,0.1)" }}>
             <CheckCircleOutlined style={{ fontSize: "40px", color: "#52c41a" }} />
             <h3>Available</h3>
-            <p>{technicians.filter((tech) => tech.status === "Available").length}</p>
+            <p>{technicians.filter((tech) => tech.availability === "TRUE").length}</p>
           </Card>
         </Col>
 
@@ -104,21 +135,10 @@ const ManageTechnicians = () => {
 
       {/* 🔹 Technician Table */}
       <h3 style={{ margin: "30px 0 10px" }}>Technician List</h3>
-      <Row gutter={[16, 16]} align="middle" style={{ marginBottom: "10px" }}>
-        <Col xs={24} sm={12} md={8}>
-          <Input prefix={<SearchOutlined />} placeholder="Search Technicians..." />
-        </Col>
-        <Col xs={24} sm={12} md={8}>
-          <Select defaultValue="all" style={{ width: "100%" }}>
-            <Option value="all">All</Option>
-            <Option value="available">Available</Option>
-            <Option value="assigned">Assigned</Option>
-            <Option value="inactive">Inactive</Option>
-          </Select>
-        </Col>
-      </Row>
-
       <Table columns={columns} dataSource={technicians} loading={loading} rowKey="id" pagination={{ pageSize: 5 }} />
+
+      {/* 🔹 Add Technician Modal */}
+      <AddTechnicianModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onAddTechnician={handleAddTechnician} />
     </div>
   );
 };
