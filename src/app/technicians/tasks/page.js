@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, Button, Tag, Row, Col, Typography, message, Pagination, Table, Tooltip, Popover } from "antd";
-import { CheckCircleOutlined, CloseCircleOutlined, InfoCircleOutlined } from "@ant-design/icons";
+import { Card, Button, Tag, Row, Col, Typography, message, Pagination, Table, Tooltip, Popover, Image } from "antd";
+import { CheckCircleOutlined, CloseCircleOutlined, InfoCircleOutlined, EyeOutlined } from "@ant-design/icons";
 import { supabase } from "../../../../lib/supabase";
 import ReportModal from "../../components/ReportModal";
+import TaskViewModal from "@/app/components/TaskViewModal";
 
 const { Title, Text } = Typography;
 
@@ -12,11 +13,14 @@ const TechnicianTasks = () => {
   const [loading, setLoading] = useState(true);
   const [tasks, setTasks] = useState([]);
   const [allTasks, setAllTasks] = useState([]);
+  const [completedTasks, setCompletedTasks] = useState([]);
   const [technicianId, setTechnicianId] = useState(null);
   const [showAllTasks, setShowAllTasks] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(8);
+  const [pageSize, setPageSize] = useState(6);
   const [modalVisible, setModalVisible] = useState(false);
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [TaskViewModalVisible, setTaskViewModalVisible] = useState(false);
 
   useEffect(() => {
     getTechnicianSession();
@@ -26,8 +30,9 @@ const TechnicianTasks = () => {
     if (technicianId) {
       fetchTasks();
       fetchAllTasks();
-      autoAssignTechnicians(); // Assign immediately on load
-      subscribeToTaskChanges(); // 🔥 Listen for real-time updates
+      fetchCompletedTasks();
+      autoAssignTechnicians(); 
+      subscribeToTaskChanges();
     }
   }, [technicianId]);
 
@@ -48,7 +53,7 @@ const TechnicianTasks = () => {
     }
   };
 
-  // 🔹 Fetch newly assigned tasks to the logged-in technician with status pending
+  // Fetch newly assigned tasks to the logged-in technician with status pending
   const fetchTasks = async () => {
     try {
       setLoading(true);
@@ -71,7 +76,7 @@ const TechnicianTasks = () => {
     }
   };
 
-  // 🔹 Fetch All tasks assigned to the logged-in technician
+  // Fetch All tasks in progress for the logged-in technician
   const fetchAllTasks = async () => {
     try {
       setLoading(true);
@@ -94,38 +99,60 @@ const TechnicianTasks = () => {
     }
   };
 
-  // 🔹 Auto-assign requests to available technicians
+  // Fetch All completed tasks for the logged-in technician
+  const fetchCompletedTasks = async () => {
+    try {
+      setLoading(true);
+      if (!technicianId) return;
+
+      const { data, error } = await supabase
+        .from("requests")
+        .select("*")
+        .eq("assigned_technician_id", technicianId)
+        .eq("status", "completed");
+
+      if (error) throw error;
+
+      setCompletedTasks(data);
+    } catch (error) {
+      console.error("Error fetching tasks:", error.message);
+      message.error("Failed to fetch tasks.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const autoAssignTechnicians = async () => {
     try {
       setLoading(true);
-
-      // 1️⃣ Get unassigned requests
+  
+      // Get unassigned requests
       let { data: requests, error: requestError } = await supabase
         .from("requests")
         .select("*")
         .or("assigned.is.null,assigned.eq.No")
-        .is("rejected", null); // 🔥 Ensure rejected is NULL
-
+        .is("rejected", null);
+  
       if (requestError) throw requestError;
       if (!requests || requests.length === 0) return;
-
-      // 2️⃣ Get available technicians sorted by workload
+  
+      // Get available technicians sorted by workload
       let { data: technicians, error: techError } = await supabase
         .from("technicians")
         .select("*")
         .eq("availability", "Yes")
         .order("workload", { ascending: true });
-
+  
       if (techError) throw techError;
       if (!technicians || technicians.length === 0) return;
-
-      // 3️⃣ Assign requests to technicians
+  
+      // Assign requests to technicians
       for (const request of requests) {
         if (technicians.length === 0) break;
-
-        const assignedTechnician = technicians.shift(); // Pick the first available technician
-
-        // 4️⃣ Update the request table
+  
+        const assignedTechnician = technicians.shift();
+  
+        // Update the request table
         const { error: requestUpdateError } = await supabase
           .from("requests")
           .update({
@@ -135,17 +162,40 @@ const TechnicianTasks = () => {
             status: "Pending",
           })
           .eq("id", request.id);
-
+  
         if (requestUpdateError) throw requestUpdateError;
-
-        // 5️⃣ Update technician workload count
+  
+        // Update technician workload count
         await supabase
           .from("technicians")
           .update({ workload: assignedTechnician.workload + 1 })
           .eq("technician_id", assignedTechnician.technician_id);
+  
+        // Notify the assigned technician
+        await supabase.from("notifications").insert([
+          {
+            user_id: assignedTechnician.technician_id, 
+            message: `You have been assigned a new task from ${request.client}.`, 
+            technician: "yes", 
+            technician_recipient_id: assignedTechnician.technician_id, 
+            date: new Date(), 
+            status: "unread",
+          },
+        ]);
+  
+        // Notify the admin
+        await supabase.from("notifications").insert([
+          {
+            user_id: assignedTechnician.technician_id, 
+            message: `Request by ${request.client} has been assigned to ${assignedTechnician.name}.`,
+            admin: "yes",
+            date: new Date(),
+            status: "unread",
+          },
+        ]);
       }
-
-      message.success("Auto-assignment completed.");
+  
+      message.success("Auto-assignment completed. Notifications sent.");
     } catch (error) {
       console.error("Auto-assignment error:", error.message);
       message.error("Failed to auto-assign tasks.");
@@ -153,8 +203,9 @@ const TechnicianTasks = () => {
       setLoading(false);
     }
   };
+  
 
-  // 🔥 Subscribe to real-time updates from the requests table
+  // Subscribe to real-time updates from the requests table
   const subscribeToTaskChanges = () => {
     const subscription = supabase
       .channel("tasks-updates")
@@ -163,7 +214,7 @@ const TechnicianTasks = () => {
         { event: "UPDATE", schema: "public", table: "requests" },
         (payload) => {
           console.log("Task updated:", payload);
-          fetchTasks(); // Refresh tasks when a task is updated
+          fetchTasks(); 
         }
       )
       .on(
@@ -171,7 +222,7 @@ const TechnicianTasks = () => {
         { event: "INSERT", schema: "public", table: "requests" },
         (payload) => {
           console.log("New task assigned:", payload);
-          fetchTasks(); // Refresh tasks when a new task is added
+          fetchTasks(); 
         }
       )
       .on(
@@ -179,7 +230,7 @@ const TechnicianTasks = () => {
         { event: "DELETE", schema: "public", table: "requests" },
         (payload) => {
           console.log("Task deleted:", payload);
-          fetchTasks(); // Refresh tasks when a task is deleted
+          fetchTasks(); 
         }
       )
       .subscribe();
@@ -194,10 +245,10 @@ const TechnicianTasks = () => {
     try {
       setLoading(true);
   
-      // 🔥 Step 1: Fetch the current task to get the assigned technician ID
+      // Step 1: Fetch the current task to get the assigned technician ID
       const { data: task, error: taskError } = await supabase
         .from("requests")
-        .select("assigned_technician_id")
+        .select("assigned_technician_id, assigned_technician_name, client")
         .eq("id", taskId)
         .single();
   
@@ -206,20 +257,20 @@ const TechnicianTasks = () => {
   
       const assignedTechnicianId = task.assigned_technician_id;
   
-      // 🔥 Step 2: Update the request to mark as rejected and unassign
+      // Step 2: Update the request to mark as rejected and unassign
       const { error: requestUpdateError } = await supabase
         .from("requests")
         .update({
-          rejected: "Yes", // Mark as rejected
-          assigned: null, // Unassign task
-          assigned_technician_id: null, // Remove technician ID
-          assigned_technician_name: null, // Remove technician name
+          rejected: "Yes", 
+          assigned: null, 
+          assigned_technician_id: null, 
+          assigned_technician_name: null,
         })
         .eq("id", taskId);
   
       if (requestUpdateError) throw requestUpdateError;
   
-      // 🔥 Step 3: Reduce the technician's workload by 1 (but not below 0)
+      // Step 3: Reduce the technician's workload by 1 (but not below 0)
       // Fetch the current workload
       const { data: technicianData, error: technicianError } = await supabase
         .from("technicians")
@@ -231,7 +282,7 @@ const TechnicianTasks = () => {
       if (!technicianData) throw new Error("Technician not found.");
 
       const currentWorkload = technicianData.workload;
-      const newWorkload = Math.max(0, currentWorkload - 1); // Calculate new workload
+      const newWorkload = Math.max(0, currentWorkload - 1); 
 
       // Update the technician's workload
       const { error: workloadUpdateError } = await supabase
@@ -242,10 +293,33 @@ const TechnicianTasks = () => {
         .eq("technician_id", assignedTechnicianId);
 
       if (workloadUpdateError) throw workloadUpdateError;
+
+      // Notify the assigned technician
+      await supabase.from("notifications").insert([
+        {
+          user_id: assignedTechnicianId, 
+          message: `You have successfully opted out of auto-assignment. Our admin is now reviewing your request for a manual assignment. We appreciate your patience.`, 
+          technician: "yes", 
+          technician_recipient_id: assignedTechnicianId, 
+          date: new Date(), 
+          status: "unread",
+        },
+      ]);
+
+      // Notify the admin
+      await supabase.from("notifications").insert([
+        {
+          user_id: assignedTechnicianId, 
+          message: `The system's automatic assignment of ${task.client}'s request to ${task.assigned_technician_name} has been rejected. Please review and proceed with a manual assignment.`,
+          admin: "yes",
+          date: new Date(),
+          status: "unread",
+        },
+      ]);
   
       message.success("Task rejected successfully!");
   
-      // 🔄 Step 4: Refresh the task list
+      // Step 4: Refresh the task list
       fetchTasks();
     } catch (error) {
       console.error("Error rejecting task:", error.message);
@@ -257,24 +331,74 @@ const TechnicianTasks = () => {
 
   const handleAccept = async (taskId) => {
     try {
-      // ✅ Update request status in Supabase
+       // Step 1: Fetch the current task to get the assigned technician ID
+       const { data: task, error: taskError } = await supabase
+       .from("requests")
+       .select("*")
+       .eq("id", taskId)
+       .single();
+ 
+     if (taskError) throw taskError;
+     if (!task) throw new Error("Task not found.");
+
+      // Update request status in Supabase
       const { error } = await supabase
         .from("requests")
-        .update({ status: "In Progress" }) // ✅ Change status to "In Progress"
-        .eq("id", taskId); // ✅ Update only the clicked task
+        .update({ status: "In Progress" }) 
+        .eq("id", taskId);
   
       if (error) {
         throw error;
       }
   
-      message.success("Task has been marked as In Progress!"); // ✅ Show success message
+       // Notify the assigned technician
+       await supabase.from("notifications").insert([
+        {
+          user_id: task.assigned_technician_id, 
+          message: `You have started working on ${task.client}'s request. Remember to submit a report once done with the task.`, 
+          technician: "yes", 
+          technician_recipient_id: task.assigned_technician_id, 
+          date: new Date(), 
+          status: "unread",
+        },
+      ]);
+
+      // Notify the client
+      await supabase.from("notifications").insert([
+        {
+          user_id: task.assigned_technician_id, 
+          message: `Your request (Request ID: ${task.id}) have been assigned to ${task.assigned_technician_name}.`, 
+          client: "yes", 
+          client_recipient_id: task.user_id, 
+          date: new Date(), 
+          status: "unread",
+        },
+      ]);
+
+      // Notify the admin
+      await supabase.from("notifications").insert([
+        {
+          user_id: task.assigned_technician_id, 
+          message: `The request from ${task.client} is currently in progress. The assigned technician on site is **${task.assigned_technician_name} (ID: ${task.assigned_technician_id})**.`,
+          admin: "yes",
+          date: new Date(),
+          status: "unread",
+        },
+      ]);
+  
+      message.success("Task has been marked as In Progress!"); 
     } catch (err) {
       console.error("Error updating task status:", err.message);
-      message.error("Failed to update task status."); // ✅ Show error message
+      message.error("Failed to update task status.");
     }
   };
   
-  
+  // Open Modal with Fault Details
+  const handleViewTask = (task) => {
+    setSelectedTask(task);
+    setTaskViewModalVisible(true);
+  };
+
   // Define Table Columns
   const columns = [
     {
@@ -318,32 +442,79 @@ const TechnicianTasks = () => {
       key: "action",
       render: (_, record) => (
         <>
-          <Button type="primary" size="small" onClick={() => setModalVisible(true)}>
-            Submit Report
+          <Button
+            type="primary"
+            size="small"
+            onClick={() => {
+              setSelectedTask(record); // Set the correct task
+              setModalVisible(true); // Open modal
+            }}
+          >
+            Mark as Complete
           </Button>
-    
-          <ReportModal
-            visible={modalVisible}
-            onClose={() => setModalVisible(false)}
-            task={record} // ✅ Pass the correct task (record)
-          />
         </>
       ),
     },    
-    
+  ];
+
+  // Define Table Columns
+  const completedColumns = [
+    {
+      title: "Task ID",
+      dataIndex: "id",
+      key: "id",
+    },
+    {
+      title: "Task Title",
+      dataIndex: "title",
+      key: "title",
+    },
+    {
+      title: "Description",
+      dataIndex: "description",
+      key: "description",
+    },
+    {
+      title: "Client",
+      dataIndex: "client",
+      key: "client",
+    },
+    {
+      title: "Phone",
+      dataIndex: "phone",
+      key: "phone",
+    },
+    {
+      title: "Status",
+      dataIndex: "status",
+      key: "status",
+      render: (status) => (
+        <Tag color="green">
+          {status.toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase())}
+        </Tag>
+      ),
+    },
+    {
+      title: "Deadline",
+      dataIndex: "preferred_date",
+      key: "preferred_date",
+    },
+    {
+      title: "Rating",
+      dataIndex: "rating",
+      key: "action",
+    },    
   ];
 
   return (
-    <div style={{ padding: "20px" }}>
-      <Title level={2} style={{ textAlign: "center", marginBottom: "20px" }}>Technician Tasks</Title>
-
-      {/* 📌 Assigned Tasks Section */}
+    <div style={{ padding: "10px" }}>
+      {/* Assigned Tasks Section */}
       <Title level={4}>Newly Assigned Tasks</Title>
       {tasks.length > 0 ? (
         <>
-          <Row gutter={[16, 16]}>
+          <Row gutter={[16, 16]} justify="center">
           {(showAllTasks ? tasks : tasks.slice((currentPage - 1) * pageSize, currentPage * pageSize)).map((task) => (
-            <Col xs={24} sm={12} md={6} key={task.id}>
+            <Col xs={24} sm={12} md={8} lg={6} xl={6} key={task.id}>
               <Card 
                 title={
                   <div style={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
@@ -372,27 +543,49 @@ const TechnicianTasks = () => {
                     )}
                   </div>
                 } bordered={false} style={{ boxShadow: "0px 2px 10px rgba(0,0,0,0.1)" }}>
+                <Row gutter={16} align="middle">
+                  <Col span={18} md={18}>
+                    <Text><strong>Client:</strong> {task.client}</Text>
+                    <br />
+                    <Text><strong>Location:</strong> {task.location}</Text>
+                    <br />
+                    <Text><strong>Deadline:</strong> {task.preferred_date}</Text>
+                    <br />
+                    <Text><strong>Phone:</strong> {task.phone}</Text>
+                    <br />
+                    <Text style={{ display: "inline-block", width: "100%", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",}}>
+                      <strong>Description:</strong> {task.description}
+                    </Text>
 
-                <Text><strong>Client:</strong> {task.client}</Text>
-                <br />
-                <Text><strong>Location:</strong> {task.location}</Text>
-                <br />
-                <Text><strong>Deadline:</strong> {task.preferred_date}</Text>
-                <br />
-                <Text><strong>Phone:</strong> {task.phone}</Text>
-                <br />
-                <Text><strong>Description:</strong> {task.description}</Text>
-                <br />
-                <div style={{ marginTop: "10px", justifyContent:"space-between", display:"flex"}}>
-                <Button type="primary" size="small" icon={<CheckCircleOutlined />} style={{ marginRight: "10px", marginBottom: "10px" }}
-                  onClick={() => handleAccept(task.id)}
-                >
-                  Accept
-                </Button>
-                  <Button danger size="small" icon={<CloseCircleOutlined />} onClick={() => handleReject(task.id, technicianId)}>
-                    Reject
-                  </Button>
-                </div>
+                  </Col>
+
+                  <Col xs={24} sm={8} md={6} style={{ justifyContent: "center", display: "flex", marginTop: "10px" }}>
+                    <Image
+                      width="100%"
+                      height={100}
+                      style={{ objectFit: "cover", borderRadius: "5px", max:"100px" }}
+                      src={task.image_url || "https://via.placeholder.com/80"}
+                      alt="Fault Image"
+                    />
+                  </Col>
+                </Row>
+                <Row justify="space-between" style={{ marginTop: "10px", flexWrap: "wrap" }}>
+                  <Col span={24}>
+                    <div style={{ marginTop: "10px", justifyContent:"space-between", display:"flex", flexWrap:"wrap"}}>
+                      <Button type="primary" size="small" icon={<CheckCircleOutlined />} style={{ marginRight: "10px", marginBottom: "10px" }}
+                        onClick={() => handleAccept(task.id)}
+                      >
+                        Accept
+                      </Button>
+                      
+                      <Button type="link" icon={<EyeOutlined />} onClick={() => handleViewTask(task)} style={{color:"gray"}}>View</Button>
+                
+                      <Button danger size="small" icon={<CloseCircleOutlined />} onClick={() => handleReject(task.id, technicianId)}>
+                        Reject
+                      </Button>
+                    </div>
+                  </Col>
+                </Row>
               </Card>
             </Col>
           ))}
@@ -416,12 +609,34 @@ const TechnicianTasks = () => {
         <Text type="secondary">No assigned tasks at the moment.</Text>
       )}
 
+      <h3>Tasks In Progress</h3>
+
         <Table
           columns={columns}
           dataSource={allTasks}
           rowKey="id"
           pagination={{ pageSize }}
         />
+      <h3>Tasks Completed</h3>
+        <Table
+          columns={completedColumns}
+          dataSource={completedTasks}
+          rowKey="id"
+          pagination={{ pageSize }}
+        />
+
+
+      <TaskViewModal
+        visible={TaskViewModalVisible}
+        onClose={() => setTaskViewModalVisible(false)}
+        task={selectedTask}
+      />
+
+      <ReportModal
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        task={selectedTask}
+      />
     </div>
   );
 };

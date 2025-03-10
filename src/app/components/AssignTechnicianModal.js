@@ -21,7 +21,7 @@ const AssignTechnicianModal = ({ visible, onClose, requestId }) => {
     }
   }, [visible]);
 
-  // 🔹 Fetch all technicians
+  // Fetch all technicians
   const fetchTechnicians = async () => {
     setLoading(true);
     const { data, error } = await supabase.from("technicians").select("*");
@@ -37,19 +37,19 @@ const AssignTechnicianModal = ({ visible, onClose, requestId }) => {
     setLoading(false);
   };
 
-  // 🔍 Filter technicians based on search input
+  // Filter technicians based on search input
   const handleSearch = (value) => {
     setSearchText(value.toLowerCase());
     filterTechnicians(value.toLowerCase(), workloadFilter);
   };
 
-  // 📌 Filter technicians based on workload dropdown
+  // Filter technicians based on workload dropdown
   const handleWorkloadFilter = (value) => {
     setWorkloadFilter(value);
     filterTechnicians(searchText, value);
   };
 
-  // 🔥 Apply filters (search + workload)
+  // Apply filters (search + workload)
   const filterTechnicians = (search, workload) => {
     let filtered = technicians;
 
@@ -71,12 +71,12 @@ const AssignTechnicianModal = ({ visible, onClose, requestId }) => {
     setFilteredTechnicians(filtered);
   };
 
-  // 🔹 Handle technician selection
+  // Handle technician selection
   const handleSelectTechnician = (technician) => {
     setSelectedTechnician(technician);
   };
 
-  // 🔥 Assign selected technician to the request
+  // Assign selected technician to the request
   const handleAssign = async () => {
     if (!selectedTechnician) {
       message.warning("Please select a technician.");
@@ -86,7 +86,17 @@ const AssignTechnicianModal = ({ visible, onClose, requestId }) => {
     try {
       setLoading(true);
 
-      // ✅ Step 1: Update request table
+       // Step 1: Fetch the current task to get the assigned technician ID
+       const { data: task, error: taskError } = await supabase
+       .from("requests")
+       .select("client")
+       .eq("id", requestId)
+       .single();
+ 
+     if (taskError) throw taskError;
+     if (!task) throw new Error("Task not found.");
+
+      // Step 1: Update request table
       const { error: requestError } = await supabase
         .from("requests")
         .update({
@@ -101,13 +111,36 @@ const AssignTechnicianModal = ({ visible, onClose, requestId }) => {
 
       if (requestError) throw requestError;
 
-      // ✅ Step 2: Update technician workload
+      // Step 2: Update technician workload
       const { error: workloadError } = await supabase
         .from("technicians")
         .update({ workload: selectedTechnician.workload + 1 })
         .eq("id", selectedTechnician.id);
 
       if (workloadError) throw workloadError;
+
+       // Notify the assigned technician
+       await supabase.from("notifications").insert([
+        {
+          user_id: selectedTechnician.technician_id, 
+          message: `You have a new task assignemnt from ${task.client}.`, 
+          technician: "yes", 
+          technician_recipient_id: selectedTechnician.technician_id, 
+          date: new Date(), 
+          status: "unread",
+        },
+      ]);
+
+      // Notify the admin
+      await supabase.from("notifications").insert([
+        {
+          user_id: selectedTechnician.technician_id, 
+          message: `You have successfully assigned ${task.client}'s request to ${selectedTechnician.name}.`,
+          admin: "yes",
+          date: new Date(),
+          status: "unread",
+        },
+      ]);
 
       message.success("Technician assigned successfully!");
       onClose(); // Close modal after assignment
@@ -119,7 +152,7 @@ const AssignTechnicianModal = ({ visible, onClose, requestId }) => {
     }
   };
 
-  // 📌 Table columns
+  // Table columns
   const columns = [
     {
       title: "ID",
@@ -176,7 +209,7 @@ const AssignTechnicianModal = ({ visible, onClose, requestId }) => {
       footer={null}
       width={1200}
     >
-      {/* 🔍 Search Bar */}
+      {/* Search Bar */}
       <Search
         placeholder="Search by ID, Name, Specialization, Location, Workload"
         onSearch={handleSearch}
@@ -184,7 +217,7 @@ const AssignTechnicianModal = ({ visible, onClose, requestId }) => {
         style={{ marginBottom: 16, width: "40%", marginRight: 16 }}
       />
 
-      {/* 📌 Workload Filter */}
+      {/* Workload Filter */}
       <Select
         placeholder="Filter by Workload"
         onChange={handleWorkloadFilter}
@@ -197,7 +230,7 @@ const AssignTechnicianModal = ({ visible, onClose, requestId }) => {
         <Option value={20}>{"<20"}</Option>
       </Select>
 
-      {/* 📋 Technician Table */}
+      {/* Technician Table */}
       <Table
         dataSource={filteredTechnicians}
         columns={columns}

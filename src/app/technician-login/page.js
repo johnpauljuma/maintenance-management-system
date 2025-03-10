@@ -20,7 +20,7 @@ const TechnicianLogin = () => {
     setLoading(true);
     const { technicianId, password } = values;
   
-    // ✅ Step 1: Fetch technician data by ID
+    // Step 1: Fetch technician data by ID
     const { data: technician, error } = await supabase
       .from("technicians")
       .select("*") // Fetch all details for session storage
@@ -34,7 +34,7 @@ const TechnicianLogin = () => {
       return;
     }
   
-    // ✅ Step 2: Verify password with bcrypt
+    // Step 2: Verify password with bcrypt
     const isPasswordValid = await bcrypt.compare(password, technician.password);
     if (!isPasswordValid) {
       message.error("Invalid password!");
@@ -42,7 +42,7 @@ const TechnicianLogin = () => {
       return;
     }
   
-    // ✅ Step 3: Store technician details in sessionStorage
+    // Step 3: Store technician details in sessionStorage
     sessionStorage.setItem("technicianId", technicianId); 
     sessionStorage.setItem("technicianLoggedIn", "true");
     sessionStorage.setItem("technician", JSON.stringify(technician)); // Store entire technician object
@@ -50,7 +50,7 @@ const TechnicianLogin = () => {
     message.success("Login successful!");
     setLoading(false);
   
-    // ✅ Redirect to technician dashboard
+    // Redirect to technician dashboard
     router.replace("/technicians");
   };
   

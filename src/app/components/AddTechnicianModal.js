@@ -4,7 +4,7 @@ import "@ant-design/v5-patch-for-react-19";
 import { useState } from "react";
 import { Modal, Form, Input, Select, DatePicker, Button, Row, Col, message } from "antd";
 import { supabase } from "../../../lib/supabase";
-import bcrypt from "bcryptjs"; // ✅ Install with: npm install bcryptjs
+import bcrypt from "bcryptjs";
 
 const { Option } = Select;
 
@@ -17,17 +17,17 @@ const AddTechnicianModal = ({ isOpen, onClose }) => {
     const { email, password, technicianId, name, specialization, location, availability, dateJoined } = values;
   
     try {
-      // ✅ Encrypt password before storing
+      // Encrypt password before storing
       const hashedPassword = await bcrypt.hash(password, 10);
   
-      // ✅ Insert technician details into Supabase
+      // Insert technician details into Supabase
       console.log("📦 Saving technician data in Supabase...");
       const { error: dbError } = await supabase.from("technicians").insert([
         {
           technician_id: technicianId,
           name,
           email,
-          password: hashedPassword, // ✅ Store hashed password
+          password: hashedPassword,
           specialization,
           location,
           availability,

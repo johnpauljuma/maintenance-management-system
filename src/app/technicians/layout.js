@@ -3,77 +3,54 @@
 import "@ant-design/v5-patch-for-react-19";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Layout, Menu, Avatar, Dropdown, Button, Drawer, Spin } from "antd";
+import { Layout, Menu, Avatar, Dropdown, Button, Drawer, Spin, Space, Grid } from "antd";
 import {
-  BellOutlined,
-  UserOutlined,
-  HomeOutlined,
-  SettingOutlined,
-  LogoutOutlined,
-  MenuOutlined,
-  ToolOutlined,
-  CheckCircleOutlined,
+  BellOutlined, UserOutlined, HomeOutlined, SettingOutlined, LogoutOutlined, MenuOutlined, ToolOutlined, 
+  CheckCircleOutlined, FacebookOutlined, TwitterOutlined, LinkedinOutlined, InstagramOutlined, WhatsAppOutlined, YoutubeOutlined
 } from "@ant-design/icons";
 import Link from "next/link";
 import { supabase } from "../../../lib/supabase";
 import AppFooter from "../components/TechnicianFooter";
 
 const { Header, Sider, Content, Footer } = Layout;
+const { useBreakpoint } = Grid; // ✅ Ant Design Grid Breakpoints
 
 const TechnicianLayout = ({ children }) => {
   const router = useRouter();
-  const pathname = usePathname(); // ✅ Get current route for sidebar highlight
+  const pathname = usePathname();
+  const screens = useBreakpoint(); // ✅ Get responsive screen size
   const [user, setUser] = useState(null);
   const [technician, setTechnician] = useState(null);
   const [loading, setLoading] = useState(true);
   const [collapsed, setCollapsed] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    // ✅ Check if technician is logged in
     const storedTechnician = sessionStorage.getItem("technician");
     
     if (!storedTechnician) {
-      router.replace("/technician-login"); // Redirect if not logged in
+      router.replace("/technician-login");
       return;
     }
 
-    setTechnician(JSON.parse(storedTechnician)); // ✅ Set technician state
+    setTechnician(JSON.parse(storedTechnician));
     setLoading(false);
-
-    // Detect mobile view
-    const handleResize = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
   }, [router]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    sessionStorage.removeItem("technicianLoggedIn"); // ✅ Clear session
+    sessionStorage.removeItem("technicianLoggedIn");
     router.replace("/technician-login");
   };
 
-  // User dropdown menu
   const userMenu = {
     items: [
       {
         key: "profile",
-        label: (
-          <Link href="/technicians/profile">
-            <UserOutlined /> Profile
-          </Link>
-        ),
+        label: <Link href="/technicians/profile"><UserOutlined /> Profile</Link>,
       },
       {
         key: "settings",
-        label: (
-          <Link href="/technicians/settings">
-            <SettingOutlined /> Settings
-          </Link>
-        ),
+        label: <Link href="/technicians/settings"><SettingOutlined /> Settings</Link>,
       },
       {
         key: "logout",
@@ -87,20 +64,23 @@ const TechnicianLayout = ({ children }) => {
     ],
   };
 
-  // Determine active menu key based on current pathname
   const getMenuKey = () => {
     if (pathname.startsWith("/technicians/tasks")) return "tasks";
     if (pathname.startsWith("/technicians/inspections")) return "inspections";
     if (pathname.startsWith("/technicians/settings")) return "settings";
-    return "dashboard"; // Default to dashboard
+    if (pathname.startsWith("/technicians/profile")) return "profile";
+    if (pathname.startsWith("/technicians/edit-profile")) return "edit-profile";
+    if (pathname.startsWith("/technicians/notifications")) return "notifications";
+    return "dashboard";
   };
 
-  // Sidebar menu items
   const sidebarItems = [
     { key: "dashboard", icon: <HomeOutlined />, label: <Link href="/technicians">Dashboard</Link> },
     { key: "tasks", icon: <ToolOutlined />, label: <Link href="/technicians/tasks">Tasks</Link> },
     { key: "inspections", icon: <CheckCircleOutlined />, label: <Link href="/technicians/inspections">Inspections</Link> },
+    { key: "notifications", icon: <BellOutlined />, label: <Link href="/technicians/notifications">Notifications</Link> },
     { key: "settings", icon: <SettingOutlined />, label: <Link href="/technicians/settings">Settings</Link> },
+   
   ];
 
   if (loading) {
@@ -131,12 +111,15 @@ const TechnicianLayout = ({ children }) => {
         }}
       >
         {/* Mobile Menu Toggle */}
-        {isMobile && (
-          <Button type="text" icon={<MenuOutlined />} onClick={() => setCollapsed(true)} style={{ color: "white" }} />
-        )}
+        <Button 
+          type="text" 
+          icon={<MenuOutlined />} 
+          onClick={() => setCollapsed(true)} 
+          style={{ color: "white", display: screens.md ? "none" : "inline-block" }} 
+        />
 
-        {/* App Name */}
-        <span style={{ fontSize: "18px", fontWeight: "bold" }}>AFMMS - Technician Portal</span>
+        {/* App Name - Hidden on Mobile */}
+        {screens.md && <span style={{ fontSize: "18px", fontWeight: "bold" }}>AFMMS - Technician Portal</span>}
 
         {/* Notifications & Profile */}
         <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
@@ -156,7 +139,7 @@ const TechnicianLayout = ({ children }) => {
 
       <Layout>
         {/* Sidebar (Desktop) */}
-        {!isMobile && (
+        {screens.md && (
           <Sider
             width={200}
             style={{
@@ -179,7 +162,7 @@ const TechnicianLayout = ({ children }) => {
         </Drawer>
 
         {/* Main Content */}
-        <Layout style={{ marginLeft: isMobile ? 0 : 200, marginTop: "64px", minHeight: "calc(100vh - 120px)", overflowY: "auto" }}>
+        <Layout style={{ marginLeft: screens.md ? 200 : 0, marginTop: "64px", minHeight: "calc(100vh - 120px)", overflowY: "auto" }}>
           <Content style={{ padding: "20px" }}>{children}</Content>
           <AppFooter />
 
@@ -198,9 +181,29 @@ const TechnicianLayout = ({ children }) => {
               alignItems: "center",
             }}
           >
-            <a href="#" target="_blank" style={{ margin: "0 15px" }}>Facebook</a>
-            <a href="#" target="_blank" style={{ margin: "0 15px" }}>Twitter</a>
-            <a href="#" target="_blank" style={{ margin: "0 15px" }}>LinkedIn</a>
+            <div style={{ textAlign: "center" }}>
+              <h4 style={{ color: "#02245b", marginBottom: "5px", fontStyle:"italic" }}>Follow Us</h4>
+              <Space size="large">
+                <a href="#" target="_blank" rel="noopener noreferrer">
+                  <YoutubeOutlined style={{ fontSize: "24px", color: "#A61B22" }} />
+                </a>
+                <a href="#" target="_blank" rel="noopener noreferrer">
+                  <FacebookOutlined style={{ fontSize: "24px", color: "#A61B22" }} />
+                </a>
+                <a href="#" target="_blank" rel="noopener noreferrer">
+                  <TwitterOutlined style={{ fontSize: "24px", color: "#A61B22" }} />
+                </a>
+                <a href="#" target="_blank" rel="noopener noreferrer">
+                  <LinkedinOutlined style={{ fontSize: "24px", color: "#A61B22" }} />
+                </a>
+                <a href="#" target="_blank" rel="noopener noreferrer">
+                  <InstagramOutlined style={{ fontSize: "24px", color: "#A61B22" }} />
+                </a>
+                <a href="#" target="_blank" rel="noopener noreferrer">
+                  <WhatsAppOutlined style={{ fontSize: "24px", color: "#A61B22" }} />
+                </a>
+              </Space>
+            </div>
           </Footer>
         </Layout>
       </Layout>

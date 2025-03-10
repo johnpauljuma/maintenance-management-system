@@ -108,12 +108,11 @@ const MyRequests = () => {
       dataIndex: "status",
       key: "status",
       render: (status) => {
-        const color =
-          status === "Completed" ? "green" :
-          status === "In Progress" ? "orange" :
-          status === "Pending" ? "blue" :
-          "red";
-        return <Tag color={color}>{status}</Tag>;
+        // Convert status to title case
+        const titleCaseStatus = status.toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
+    
+        let color = status === "completed" ? "green" : status === "In Progress" ? "orange" : "red";
+        return <Tag color={color}>{titleCaseStatus}</Tag>;
       },
     },
     {

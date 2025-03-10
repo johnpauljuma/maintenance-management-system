@@ -1,98 +1,159 @@
-import { useState } from "react"; 
+import { useState, useEffect } from "react";
 import { Modal, Button, Form, Input, DatePicker, message, Upload, Radio, Row, Col } from "antd";
-import { UploadOutlined } from "@ant-design/icons";
+import { UploadOutlined, InboxOutlined } from "@ant-design/icons";
 import { supabase } from "../../../lib/supabase";
- 
+import dayjs from "dayjs";
+
 const { TextArea } = Input;
 
-// ✅ Modal Component for Submitting a Report
 const ReportModal = ({ visible, onClose, task }) => {
   const [loading, setLoading] = useState(false);
-  const [form] = Form.useForm(); 
+  const [form] = Form.useForm();
+  const [calculatedTime, setCalculatedTime] = useState("");
+  const [fileList, setFileList] = useState([]);
 
-  // ✅ Handle form submission
+   // Handle file upload change
+   const handleChange = ({ fileList }) => {
+    setFileList(fileList);
+  };
+
   const handleSubmit = async (values) => {
     setLoading(true);
 
-    const reportData = {
-      request_id: task.id,
-      client_name: task.client_name,
-      client_phone: task.client_phone,
-      location: task.location,
-      assigned_technician_id: task.assigned_technician_id,
-      assigned_technician_name: task.assigned_technician_name,
-      service_completed_successful: values.service_completed_successful, // ✅ Yes, No, Maybe options
-      tools_used: values.tools_used,
-      spare_parts_used: values.spare_parts_used,
-      challenges_faced: values.challenges_faced,
-      recommendations: values.recommendations,
-      additional_info: values.additional_info,
-      date: values.date ? values.date.format("YYYY-MM-DD") : null, //  */✅ Prevent error if no date is selected
-      time_taken: values.time_taken,
-      images: fileList.images?.fileList || [], // ✅ Store uploaded images
-    };
+    try {
+      const reportData = {
+        request_id: task.id,
+        client_name: task.client,
+        client_phone: task.client,
+        location: task.location,
+        assigned_technician_id: task.assigned_technician_id,
+        assigned_technician_name: task.assigned_technician_name,
+        service_completed_successful: values.service_completed_successful,
+        tools_used: values.tools_used,
+        spare_parts_used: values.spare_parts_used,
+        challenges_faced: values.challenges_faced,
+        recommendations: values.recommendations,
+        additional_info: values.additional_info,
+        date: values.date ? values.date.format("YYYY-MM-DD") : null,
+        time_taken: values.time_taken,
+      };
 
-    // ✅ Save report in Supabase
-    const { error } = await supabase.from("reports").insert([reportData]);
+      const { error: reportError } = await supabase.from("reports").insert([reportData]);
+      if (reportError) throw reportError;
 
-    if (error) {
-      message.error("Failed to submit the report.");
-    } else {
+      await supabase.from("requests").update({ status: "completed" }).eq("id", task.id);
+      //await supabase.from("technicians").update({ workload: supabase.raw("workload - 1") }).eq("technician_id", task.assigned_technician_id);
+      
+      // Step 3: Reduce the technician's workload by 1 (but not below 0)
+      // Fetch the current workload
+      const { data: technicianData, error: technicianError } = await supabase
+        .from("technicians")
+        .select("workload")
+        .eq("technician_id", task.assigned_technician_id)
+        .single();
+
+      if (technicianError) throw technicianError;
+      if (!technicianData) throw new Error("Technician not found.");
+
+      const currentWorkload = technicianData.workload;
+      const newWorkload = Math.max(0, currentWorkload - 1); 
+
+      // Update the technician's workload
+      const { error: workloadUpdateError } = await supabase
+        .from("technicians")
+        .update({
+          workload: newWorkload,
+        })
+        .eq("technician_id", task.assigned_technician_id);
+
+      if (workloadUpdateError) throw workloadUpdateError;
+
       message.success("Report submitted successfully!");
       form.resetFields();
-      onClose(); // Close the modal after submission
+      setFileList([]); // Clear uploaded files
+      onClose();
+    } catch (error) {
+      console.error(error);
+      message.error("Failed to submit the report.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
+  
+  useEffect(() => {
+    if (task?.created_at) {
+      const taskCreationTime = dayjs(task.created_at);
+      const now = dayjs();
+
+      if (taskCreationTime.isValid()) {
+        const diffInHours = now.diff(taskCreationTime, "hour", true);
+        setCalculatedTime(diffInHours.toFixed(2));
+        form.setFieldsValue({ time_taken: diffInHours.toFixed(2) });
+      }
+    }
+  }, [task, form]);
 
   return (
-    <Modal
-      title="Submit Repair/Service Report"
-      open={visible}
-      onCancel={onClose}
-      footer={null}
-      width={800} // ✅ Larger modal width
-    >
-      <Form
-        form={form}
-        layout="vertical"
-        onFinish={handleSubmit}
-        initialValues={{ service_completed_successful: "no" }} // ✅ Default selection
+    <Modal title="Submit Repair/Service Report" open={visible} onCancel={onClose}  footer={null} width="90%" style={{ maxWidth: 800 }}>
+      <Form form={form} layout="vertical" onFinish={handleSubmit} initialValues={{ service_completed_successful: "no" }}
       >
-        <Row gutter={16}>
-          <Col span={8}>
+        <Row gutter={[16, 16]}>
+          <Col xs={24} sm={12} md={8}>
+            <Form.Item label="Request ID">
+              <Input value={task ? task.id: ""} disabled />
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={12} md={8}>
+            <Form.Item label="Request Title">
+              <Input value={task ? task.title: ""} disabled />
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={12} md={8}>
+            <Form.Item label="Request Category">
+              <Input value={task ? task.category: ""} disabled />
+            </Form.Item>
+          </Col>
+        </Row>
+
+        <Row gutter={[16, 16]}>
+          <Col xs={24} sm={12} md={8}>
             <Form.Item label="Client Name">
-              <Input value={task.client_name} disabled />
+              <Input value={task ? task.client: ""} disabled />
             </Form.Item>
           </Col>
-          <Col span={8}>
+          <Col xs={24} sm={12} md={8}>
             <Form.Item label="Client Phone">
-              <Input value={task.client_phone} disabled />
+              <Input value={task ? task.phone: ""} disabled />
             </Form.Item>
           </Col>
-          <Col span={8}>
+          <Col xs={24} sm={12} md={8}>
             <Form.Item label="Location">
-              <Input value={task.location} disabled />
+              <Input value={task ? task.location: ""} disabled />
             </Form.Item>
           </Col>
         </Row>
 
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item label="Technician">
-              <Input value={`${task.assigned_technician_name} (ID: ${task.assigned_technician_id})`} disabled />
+        <Row gutter={[16, 16]}>
+          <Col xs={24} sm={12} md={8}>
+            <Form.Item label="Technician ID">
+              <Input value={`${task ? task.assigned_technician_id: ""}`} disabled />
             </Form.Item>
           </Col>
-          <Col span={12}>
-            <Form.Item name="date" label="Date" rules={[{ required: true, message: "Please select a date!" }]}>
-              <DatePicker style={{ width: "100%" }} />
+          <Col xs={24} sm={12} md={8}>
+            <Form.Item label="Technician Name">
+              <Input value={`${task ? task.assigned_technician_name: ""}`} disabled />
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={12} md={8}>
+            <Form.Item name="date" label="Date" initialValue={dayjs()} rules={[{ required: true }]}>
+              <DatePicker style={{ width: "100%" }} disabled />
             </Form.Item>
           </Col>
         </Row>
 
-        <Row gutter={16}>
-          <Col span={8}>
-            <Form.Item name="service_completed_successful" label="Service Completed?">
+        <Row gutter={[16, 16]}>
+          <Col xs={24} sm={12} md={8}>
+            <Form.Item name="service_completed_successful" label="Service Completed Successfully?">
               <Radio.Group>
                 <Radio value="yes">Yes</Radio>
                 <Radio value="no">No</Radio>
@@ -100,40 +161,30 @@ const ReportModal = ({ visible, onClose, task }) => {
               </Radio.Group>
             </Form.Item>
           </Col>
-          <Col span={8}>
+          <Col xs={24} sm={12} md={8}>
             <Form.Item name="time_taken" label="Time Taken (hours)">
-              <Input type="number" />
+              <Input value={calculatedTime} disabled />
             </Form.Item>
           </Col>
-          <Col span={8}>
-            <Form.Item name="images" label="Upload Images">
-              <Upload listType="picture" beforeUpload={() => false} multiple>
-                <Button icon={<UploadOutlined />}>Upload</Button>
-              </Upload>
-            </Form.Item>
-          </Col>
-        </Row>
-
-        <Row gutter={16}>
-          <Col span={12}>
+          <Col xs={24} sm={12} md={8}>
             <Form.Item name="tools_used" label="Tools Used">
               <TextArea rows={2} />
             </Form.Item>
           </Col>
-          <Col span={12}>
+        </Row>
+
+        <Row gutter={[16, 16]}>
+          <Col xs={24} sm={12} md={8}>
             <Form.Item name="spare_parts_used" label="Spare Parts Used">
               <TextArea rows={2} />
             </Form.Item>
           </Col>
-        </Row>
-
-        <Row gutter={16}>
-          <Col span={12}>
+          <Col xs={24} sm={12} md={8}>
             <Form.Item name="challenges_faced" label="Challenges Faced">
               <TextArea rows={2} />
             </Form.Item>
           </Col>
-          <Col span={12}>
+          <Col xs={24} sm={12} md={8}>
             <Form.Item name="recommendations" label="Recommendations">
               <TextArea rows={2} />
             </Form.Item>
@@ -145,7 +196,7 @@ const ReportModal = ({ visible, onClose, task }) => {
         </Form.Item>
 
         <Form.Item>
-          <Button type="primary" htmlType="submit" loading={loading} block>
+          <Button size="large" type="primary" htmlType="submit" loading={loading} block>
             Submit Report
           </Button>
         </Form.Item>

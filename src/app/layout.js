@@ -33,7 +33,6 @@ export default function RootLayout({ children }) {
               <main>{children}</main>
             </Layout>
           </App>
-            
         </ConfigProvider>
       </body>
     </html>

@@ -3,17 +3,9 @@
 import "@ant-design/v5-patch-for-react-19";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Layout, Menu, Avatar, Dropdown, Button, Drawer, Spin } from "antd";
-import {
-  BellOutlined,
-  UserOutlined,
-  HomeOutlined,
-  SettingOutlined,
-  LogoutOutlined,
-  MenuOutlined,
-  PlusCircleOutlined,
-  OrderedListOutlined,
-  QuestionCircleOutlined,
+import { Layout, Menu, Avatar, Dropdown, Button, Drawer, Spin, Space } from "antd";
+import { BellOutlined, UserOutlined, HomeOutlined, SettingOutlined, LogoutOutlined, MenuOutlined, PlusCircleOutlined, OrderedListOutlined,
+  QuestionCircleOutlined, FacebookOutlined, TwitterOutlined, LinkedinOutlined, InstagramOutlined, WhatsAppOutlined, YoutubeOutlined, FileSearchOutlined
 } from "@ant-design/icons";
 import Link from "next/link";
 import { supabase } from "../../../lib/supabase";
@@ -112,6 +104,8 @@ const ClientLayout = ({ children }) => {
   const getMenuKey = () => {
     if (pathname.startsWith("/clients/new-request")) return "new-requests";
     if (pathname.startsWith("/clients/my-requests")) return "my-requests";
+    if (pathname.startsWith("/clients/inspections")) return "inspections";
+    if (pathname.startsWith("/clients/notifications")) return "notifications";
     if (pathname.startsWith("/clients/help")) return "help";
     return "home"; // Default to home
   };
@@ -132,6 +126,16 @@ const ClientLayout = ({ children }) => {
       key: "my-requests",
       icon: <OrderedListOutlined />,
       label: <Link href="/clients/my-requests">My Requests</Link>,
+    },
+    {
+      key: "inspections",
+      icon: <FileSearchOutlined />,
+      label: <Link href="/clients/inspections">Inspections</Link>,
+    },
+    {
+      key: "notifications",
+      icon: <BellOutlined />,
+      label: <Link href="/clients/notifications">Notifications</Link>,
     },
     {
       key: "help",
@@ -176,8 +180,11 @@ const ClientLayout = ({ children }) => {
         <span style={{ fontSize: "18px", fontWeight: "bold" }}>AFMMS</span>
 
         {/* Right Side: Notifications & Profile */}
-        <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+        <Link href="/clients/notifications">
           <BellOutlined style={{ fontSize: "20px", cursor: "pointer" }} />
+        </Link>
+
 
           <Dropdown menu={userMenu} placement="bottomRight" trigger={["click"]}>
             <Button type="text" style={{ color: "white", display: "flex", alignItems: "center", gap: "10px" }}>
@@ -223,7 +230,7 @@ const ClientLayout = ({ children }) => {
           {/* Mini Footer */}
           <Footer
             style={{
-              background: "#f0f2f5",
+              background: "#f5f5f5",
               textAlign: "center",
               position: "fixed",
               bottom: 0,
@@ -235,9 +242,30 @@ const ClientLayout = ({ children }) => {
               alignItems: "center",
             }}
           >
-            <a href="#" target="_blank" style={{ margin: "0 15px" }}>Facebook</a>
-            <a href="#" target="_blank" style={{ margin: "0 15px" }}>Twitter</a>
-            <a href="#" target="_blank" style={{ margin: "0 15px" }}>LinkedIn</a>
+            <div style={{ textAlign: "center" }}>
+              <h4 style={{ color: "#02245b", marginBottom: "5px", fontStyle:"italic" }}>Follow Us</h4>
+              <Space size="large">
+                <a href="#" target="_blank" rel="noopener noreferrer">
+                  <YoutubeOutlined style={{ fontSize: "24px", color: "#A61B22" }} />
+                </a>
+                <a href="#" target="_blank" rel="noopener noreferrer">
+                  <FacebookOutlined style={{ fontSize: "24px", color: "#A61B22" }} />
+                </a>
+                <a href="#" target="_blank" rel="noopener noreferrer">
+                  <TwitterOutlined style={{ fontSize: "24px", color: "#A61B22" }} />
+                </a>
+                <a href="#" target="_blank" rel="noopener noreferrer">
+                  <LinkedinOutlined style={{ fontSize: "24px", color: "#A61B22" }} />
+                </a>
+                <a href="#" target="_blank" rel="noopener noreferrer">
+                  <InstagramOutlined style={{ fontSize: "24px", color: "#A61B22" }} />
+                </a>
+                <a href="#" target="_blank" rel="noopener noreferrer">
+                  <WhatsAppOutlined style={{ fontSize: "24px", color: "#A61B22" }} />
+                </a>
+              </Space>
+            </div>
+
           </Footer>
         </Layout>
       </Layout>

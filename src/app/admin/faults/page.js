@@ -78,13 +78,13 @@ const AdminManageFaults = () => {
   
       const { data: allFaults, error } = await supabase
         .from("requests")
-        .select("*") // Fetch all faults
+        .select("*")
         .order("created_at", { ascending: false });
   
       if (error) {
         console.error("Error fetching all faults:", error.message);
       } else {
-        setAllFaults(allFaults); // ✅ Use this data for your faults table
+        setAllFaults(allFaults); 
         setOriginalFaults(allFaults);
       }
   

@@ -1,30 +1,98 @@
 "use client";
 
-import { useState } from "react";
-import { Layout, Card, Table, Tag, Button, Space, Input } from "antd";
+import "@ant-design/v5-patch-for-react-19";
+import { useState, useEffect } from "react";
+import { Layout, Card, Table, Tag, Button, Space, Input, Spin, Typography, Modal } from "antd";
 import { BellOutlined, CheckCircleOutlined, ExclamationCircleOutlined, SearchOutlined } from "@ant-design/icons";
+import { supabase } from "../../../../lib/supabase";
 
 const { Content } = Layout;
+const { Text } = Typography;
 
 const AdminNotifications = () => {
-  const [filter, setFilter] = useState("all"); // Default: Show all notifications
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedNotification, setSelectedNotification] = useState(null);
+  const [modalVisible, setModalVisible] = useState(false);
 
-  // Dummy Notifications Data
-  const notificationsData = [
-    { id: 1, type: "System", message: "New user registered", status: "Unread", date: "2024-06-12" },
-    { id: 2, type: "Critical", message: "Server downtime detected", status: "Unread", date: "2024-06-11" },
-    { id: 3, type: "Alert", message: "New fault reported", status: "Read", date: "2024-06-10" },
-    { id: 4, type: "System", message: "Database backup completed", status: "Read", date: "2024-06-09" },
-    { id: 5, type: "Critical", message: "Security breach attempt detected", status: "Unread", date: "2024-06-08" },
-    { id: 6, type: "Alert", message: "Maintenance scheduled for 2 AM", status: "Read", date: "2024-06-07" },
-  ];
+  useEffect(() => {
+    fetchNotifications();
+    const subscription = listenForNotifications();
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, []);
 
-  // Handle Filters
-  const filteredNotifications = notificationsData.filter(
+  // Fetch Notifications for Admin
+  const fetchNotifications = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("notifications")
+      .select("*")
+      .eq("admin", "yes")
+      .order("date", { ascending: false });
+
+    if (error) console.error("Error fetching notifications:", error);
+    else setNotifications(data);
+
+    setLoading(false);
+  };
+
+  // Listen for Real-Time Notifications
+  const listenForNotifications = () => {
+    return supabase
+      .channel("notifications")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notifications",
+          filter: "admin=eq.yes",
+        },
+        (payload) => {
+          setNotifications((prev) => {
+            const exists = prev.some((n) => n.notification_id === payload.new.notification_id);
+            return exists ? prev : [payload.new, ...prev];
+          });
+        }
+      )
+      .subscribe();
+  };
+
+  // Toggle Notification Read/Unread
+  const toggleReadStatus = async (id, currentStatus) => {
+    const newStatus = currentStatus === "unread" ? "read" : "unread";
+    const { error } = await supabase
+      .from("notifications")
+      .update({ status: newStatus })
+      .eq("notification_id", id);
+
+    if (!error) {
+      setNotifications((prev) =>
+        prev.map((n) =>
+          n.notification_id === id ? { ...n, status: newStatus } : n
+        )
+      );
+    }
+  };
+
+  // Handle Notification Click (Expand)
+  const handleNotificationClick = (notification) => {
+    setSelectedNotification(notification);
+    setModalVisible(true);
+    if (notification.status === "unread") {
+      toggleReadStatus(notification.notification_id, notification.status);
+    }
+  };
+
+  // Filter Notifications
+  const filteredNotifications = notifications.filter(
     (notif) =>
-      (filter === "all" || notif.status.toLowerCase() === filter) &&
-      notif.message.toLowerCase().includes(searchTerm.toLowerCase())
+      (filter === "all" || notif.status === filter) &&
+      (notif.message ? notif.message.toLowerCase().includes(searchTerm.toLowerCase()) : false)
   );
 
   // Table Columns
@@ -42,19 +110,35 @@ const AdminNotifications = () => {
       title: "Message",
       dataIndex: "message",
       key: "message",
+      render: (message, record) => (
+        <Text
+          strong={record.status === "unread"} // Bold unread messages
+          style={{ cursor: "pointer", color: "#1890ff" }}
+          onClick={() => handleNotificationClick(record)}
+        >
+          {message && message.length > 50 ? `${message.substring(0, 50)}...` : message}
+        </Text>
+      ),
     },
     {
       title: "Status",
       dataIndex: "status",
       key: "status",
-      render: (status) => (
-        <Tag color={status === "Unread" ? "red" : "green"}>{status}</Tag>
+      render: (status, record) => (
+        <Tag
+          color={status === "unread" ? "red" : "green"}
+          style={{ cursor: "pointer" }}
+          onClick={() => toggleReadStatus(record.notification_id, status)}
+        >
+          {status}
+        </Tag>
       ),
     },
     {
       title: "Date",
       dataIndex: "date",
       key: "date",
+      render: (date) => new Date(date).toLocaleString(),
     },
   ];
 
@@ -64,14 +148,26 @@ const AdminNotifications = () => {
         {/* Notification Overview */}
         <Card title="Notifications Overview" bordered={false} style={{ marginBottom: 20, borderTop: "4px solid #a61b22" }}>
           <Space size="middle">
-            <Button icon={<BellOutlined />} style={{ backgroundColor: "#a61b22", color: "#fff", border: "none" }}>
-              Total: {notificationsData.length}
+            <Button
+              icon={<BellOutlined />}
+              style={{ backgroundColor: "#a61b22", color: "#fff", border: "none" }}
+              onClick={() => setFilter("all")}
+            >
+              Total: {notifications.length}
             </Button>
-            <Button icon={<CheckCircleOutlined />} style={{ backgroundColor: "#52c41a", color: "#fff", border: "none" }}>
-              Read: {notificationsData.filter((n) => n.status === "Read").length}
+            <Button
+              icon={<CheckCircleOutlined />}
+              style={{ backgroundColor: "#52c41a", color: "#fff", border: "none" }}
+              onClick={() => setFilter("read")}
+            >
+              Read: {notifications.filter((n) => n.status === "read").length}
             </Button>
-            <Button icon={<ExclamationCircleOutlined />} style={{ backgroundColor: "#f5222d", color: "#fff", border: "none" }}>
-              Unread: {notificationsData.filter((n) => n.status === "Unread").length}
+            <Button
+              icon={<ExclamationCircleOutlined />}
+              style={{ backgroundColor: "#f5222d", color: "#fff", border: "none" }}
+              onClick={() => setFilter("unread")}
+            >
+              Unread: {notifications.filter((n) => n.status === "unread").length}
             </Button>
           </Space>
         </Card>
@@ -99,9 +195,35 @@ const AdminNotifications = () => {
 
         {/* Notification Table */}
         <Card title="Notifications" bordered={false} style={{ borderTop: "4px solid #02245b" }}>
-          <Table columns={columns} dataSource={filteredNotifications} rowKey="id" pagination={{ pageSize: 5 }} />
+          {loading ? <Spin size="large" /> : <Table columns={columns} dataSource={filteredNotifications} rowKey="notification_id" pagination={{ pageSize: 5 }} />}
         </Card>
       </Content>
+
+      {/* Notification Details Modal */}
+      <Modal
+        title="Notification Details"
+        open={modalVisible}
+        onCancel={() => setModalVisible(false)}
+        footer={[
+          <Button key="close" onClick={() => setModalVisible(false)}>
+            Close
+          </Button>,
+        ]}
+      >
+        {selectedNotification && (
+          <>
+            <p>
+              <strong>Type:</strong> {selectedNotification.type}
+            </p>
+            <p>
+              <strong>Message:</strong> {selectedNotification.message}
+            </p>
+            <p>
+              <strong>Date:</strong> {new Date(selectedNotification.date).toLocaleString()}
+            </p>
+          </>
+        )}
+      </Modal>
     </Layout>
   );
 };

@@ -15,6 +15,7 @@ const AppFooter = () => {
         textAlign: "center",
         marginBottom: "50px"
       }}
+
     >
       <Row justify="space-between" align="top" gutter={[32, 32]}>
         {/* Left Section - Company Info */}
@@ -112,6 +113,12 @@ const AppFooter = () => {
         <Col>
           <Text style={{ color: "#aaa", fontSize: "14px" }}>
             &copy; {new Date().getFullYear()} AFMMS. All Rights Reserved.
+          </Text>
+          <Text style={{ display: "block", marginTop: "10px", color: "white", fontStyle: "italic", fontWeight: "bold" }}>
+            # Developed by:{" "}
+            <a href="https://github.com/johnpauljuma" target="_blank" rel="noopener noreferrer">
+              John Paul
+            </a>
           </Text>
         </Col>
       </Row>

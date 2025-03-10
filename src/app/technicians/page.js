@@ -1,14 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Row, Col, Card, Typography, Table, Tag } from "antd";
+import { Row, Col, Card, Typography, Table, Tag, message, Select } from "antd";
 import { Bar, Line } from "react-chartjs-2";
-import {
-  ToolOutlined,
-  ClockCircleOutlined,
-  CheckCircleOutlined,
-  FileDoneOutlined,
-} from "@ant-design/icons";
+import { ToolOutlined, ClockCircleOutlined, CheckCircleOutlined, FileDoneOutlined } from "@ant-design/icons";
+import { supabase } from "../../../lib/supabase";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -24,63 +20,95 @@ import {
 ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, ChartTitle, Tooltip, Legend);
 
 const { Title } = Typography;
+const { Option } = Select;
 
 const TechnicianDashboard = () => {
-  const [taskStats, setTaskStats] = useState({
-    totalTasks: 50,
-    pending: 10,
-    inProgress: 20,
-    completed: 20,
-  });
-
+  const [technicianId, setTechnicianId] = useState(null);
+  const [taskStats, setTaskStats] = useState({ totalTasks: 0, pending: 0, inProgress: 0, completed: 0, });
   const [assignedTasks, setAssignedTasks] = useState([]);
+  const [taskTrends, setTaskTrends] = useState([]);
+  const [timeFilter, setTimeFilter] = useState("monthly");
+
+  const getTechnicianSession = () => {
+    try {
+      const storedTechnicianId = sessionStorage.getItem("technicianId");
+
+      if (!storedTechnicianId) {
+        message.error("Technician ID not found in session.");
+        return null;
+      }
+
+      return storedTechnicianId;
+    } catch (error) {
+      console.error("Error retrieving session:", error.message);
+      message.error("Failed to retrieve session.");
+      return null;
+    }
+  };
 
   useEffect(() => {
-    // Simulate fetching data (Replace with actual API call)
-    setTimeout(() => {
-      setTaskStats({
-        totalTasks: 60,
-        pending: 12,
-        inProgress: 25,
-        completed: 23,
-      });
+    const fetchTechnicianData = async () => {
+      // Get technician ID from sessionStorage
+      const userId = getTechnicianSession();
+      if (!userId) return;
 
-      setAssignedTasks([
-        {
-          key: "1",
-          taskID: "TASK001",
-          category: "Electrical",
-          status: "Pending",
-          client: "John Doe",
-          dueDate: "2025-02-25",
-        },
-        {
-          key: "2",
-          taskID: "TASK002",
-          category: "Plumbing",
-          status: "In Progress",
-          client: "Jane Smith",
-          dueDate: "2025-02-22",
-        },
-        {
-          key: "3",
-          taskID: "TASK003",
-          category: "HVAC",
-          status: "Completed",
-          client: "Mike Johnson",
-          dueDate: "2025-02-20",
-        },
-        {
-          key: "4",
-          taskID: "TASK004",
-          category: "Cleaning",
-          status: "Pending",
-          client: "Sarah Lee",
-          dueDate: "2025-02-26",
-        },
-      ]);
-    }, 2000);
-  }, []);
+      setTechnicianId(userId);
+
+      // Fetch all tasks assigned to this technician
+      const { data: tasks, error } = await supabase
+        .from("requests")
+        .select("id, category, client, status, preferred_date, created_at")
+        .eq("assigned_technician_id", userId);
+
+      if (error) {
+        console.error("Error fetching tasks:", error.message);
+        return;
+      }
+
+      // Count tasks based on status
+      const totalTasks = tasks.length;
+      const pending = tasks.filter((task) => task.status === "Pending").length;
+      const inProgress = tasks.filter((task) => task.status === "In Progress").length;
+      const completed = tasks.filter((task) => task.status === "completed").length;
+
+       // ✅ Process trends based on selected filter
+       setTaskStats({ totalTasks, pending, inProgress, completed });
+       setAssignedTasks(tasks);
+       setTaskTrends(processTaskTrends(tasks, timeFilter));
+     };
+ 
+     fetchTechnicianData();
+   }, [technicianId, timeFilter]); // Refetch when filter changes
+ 
+   // 📊 Process task completion trends based on selected filter
+   const processTaskTrends = (tasks, filter) => {
+     const trendData = {};
+ 
+     tasks
+       .filter((task) => task.status === "completed")
+       .forEach((task) => {
+         const date = new Date(task.created_at);
+ 
+         let key;
+         if (filter === "daily") {
+           key = date.toISOString().split("T")[0]; // YYYY-MM-DD
+         } else if (filter === "weekly") {
+           const weekStart = new Date(date.setDate(date.getDate() - date.getDay())).toISOString().split("T")[0];
+           key = `Week of ${weekStart}`;
+         } else if (filter === "monthly") {
+           key = date.toLocaleString("default", { month: "short", year: "numeric" });
+         } else if (filter === "yearly") {
+           key = date.getFullYear();
+         }
+ 
+         trendData[key] = (trendData[key] || 0) + 1;
+       });
+ 
+     return {
+       labels: Object.keys(trendData),
+       data: Object.values(trendData),
+     };
+   };
 
   // 📊 Bar Chart Data (Task Breakdown)
   const barChartData = {
@@ -96,20 +124,13 @@ const TechnicianDashboard = () => {
 
   // 📈 Line Chart Data (Performance Trends)
   const lineChartData = {
-    labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+    labels: taskTrends.labels || [],
     datasets: [
       {
-        label: "Tasks Completed",
-        data: [5, 10, 15, 20, 25, 30],
+        label: `Tasks Completed (${timeFilter})`,
+        data: taskTrends.data || [],
         borderColor: "#52c41a",
         backgroundColor: "rgba(82, 196, 26, 0.2)",
-        fill: true,
-      },
-      {
-        label: "Tasks Pending",
-        data: [10, 8, 7, 6, 5, 4],
-        borderColor: "#ff4d4f",
-        backgroundColor: "rgba(255, 77, 79, 0.2)",
         fill: true,
       },
     ],
@@ -119,8 +140,8 @@ const TechnicianDashboard = () => {
   const columns = [
     {
       title: "Task ID",
-      dataIndex: "taskID",
-      key: "taskID",
+      dataIndex: "id",
+      key: "id",
     },
     {
       title: "Category",
@@ -137,14 +158,18 @@ const TechnicianDashboard = () => {
       dataIndex: "status",
       key: "status",
       render: (status) => {
-        let color = status === "Completed" ? "green" : status === "In Progress" ? "orange" : "red";
-        return <Tag color={color}>{status}</Tag>;
+        // Convert status to title case
+        const titleCaseStatus = status.toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
+    
+        let color = status === "completed" ? "green" : status === "In Progress" ? "orange" : "red";
+        return <Tag color={color}>{titleCaseStatus}</Tag>;
       },
     },
+    
     {
       title: "Due Date",
-      dataIndex: "dueDate",
-      key: "dueDate",
+      dataIndex: "preferred_date",
+      key: "preferred_date",
     },
   ];
 
@@ -190,15 +215,30 @@ const TechnicianDashboard = () => {
           </Card>
         </Col>
         <Col xs={24} md={12}>
-          <Card title="Performance Trends" bordered={false}>
+          <Card
+            title={
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
+                <h3 style={{ margin: 0 }}>Performance Trends</h3>
+                {/* Time Filter Dropdown */}
+                <Select defaultValue="monthly" onChange={setTimeFilter} style={{ width: 150 }}>
+                  <Option value="daily">Daily</Option>
+                  <Option value="weekly">Weekly</Option>
+                  <Option value="monthly">Monthly</Option>
+                  <Option value="yearly">Yearly</Option>
+                </Select>
+              </div>
+            }
+            bordered={false}
+          >
             <Line data={lineChartData} />
           </Card>
         </Col>
+
       </Row>
 
       {/* Table of Assigned Tasks */}
       <Card title="Assigned Maintenance Tasks" style={{ marginTop: "20px" }} bordered={false}>
-        <Table columns={columns} dataSource={assignedTasks} pagination={{ pageSize: 5 }} />
+        <Table columns={columns} dataSource={assignedTasks} pagination={{ pageSize: 5 }} rowKey="id" />
       </Card>
     </div>
   );
