@@ -13,7 +13,7 @@
     "@supabase/supabase-js": "^2.48.1",
     "antd": "^5.23.3",
     "bcryptjs": "^3.0.2",
-    "chart.js": "^4.4.7",
+    "chart.js": "^4.4.8",
     "next": "15.1.6",
     "nodemailer": "^6.10.0",
     "react": "^19.0.0",
