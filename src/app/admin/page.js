@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { Row, Col, Card, Typography, Select } from "antd";
-import { Bar, Line } from "react-chartjs-2";
+import { Bar, Line, Doughnut,  } from "react-chartjs-2";
 import { SettingOutlined, FileDoneOutlined, HourglassOutlined, CalendarOutlined } from "@ant-design/icons";
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title as ChartTitle, Tooltip, Legend } from "chart.js";
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title as ChartTitle, Tooltip, Legend, ArcElement } from "chart.js";
 import {supabase} from "../../../lib/supabase"; // Adjust path as needed
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, ChartTitle, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, ChartTitle, Tooltip, Legend, ArcElement);
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -19,6 +19,11 @@ const AdminDashboard = () => {
     inProgress: 0,
     completed: 0,
     total: 0,
+  });
+  const [technicianStats, setTechnicianStats] = useState({
+    available: 0,
+    inactive: 0,
+    assigned: 0,
   });
   const [barChartData, setBarChartData] = useState(null);
   const [lineChartData, setLineChartData] = useState(null);
@@ -43,6 +48,26 @@ const AdminDashboard = () => {
     fetchRequests();
   }, [timeFilter]);
 
+  //fetch tecnicians
+  const fetchTechnicianStats = async () => {
+    const { data, error } = await supabase.from("technicians").select("availability, workload");
+  
+    if (error) {
+      console.error("Error fetching technicians:", error);
+      return;
+    }
+  
+    const available = data.filter((tech) => tech.availability === true).length;
+    const inactive = data.filter((tech) => tech.availability === false).length;
+    const assigned = data.filter((tech) => tech.workload > 0).length;
+  
+    setTechnicianStats({ available, inactive, assigned });
+  };
+  
+  useEffect(() => {
+    fetchTechnicianStats();
+  }, []);
+
   const calculateStats = (data) => {
     const pending = data.filter((req) => req.status === "Pending").length;
     const inProgress = data.filter((req) => req.status === "In Progress").length;
@@ -54,6 +79,14 @@ const AdminDashboard = () => {
       total: data.length,
     });
   };
+
+  //Calculate percentages
+  const totalp = maintenanceStats.total ? Math.round((maintenanceStats.total / maintenanceStats.total) * 100) : 0;
+  const pendingp = maintenanceStats.total ? Math.round((maintenanceStats.pending / maintenanceStats.total) * 100) : 0;
+  const inProgressp = maintenanceStats.total ? Math.round((maintenanceStats.inProgress / maintenanceStats.total) * 100) : 0;
+  const completedp = maintenanceStats.total ? Math.round((maintenanceStats.completed / maintenanceStats.total) * 100) : 0;
+
+
 
   const updateCharts = (data) => {
     // Bar Chart Data
@@ -80,6 +113,29 @@ const AdminDashboard = () => {
     updateLineChart(data);
   };
 
+  // 📊 Status Bar Chart Data
+  const statusBarChartData = {
+    labels: ["Pending", "In Progress", "Completed"],
+    datasets: [
+      {
+        label: "Number of Tasks",
+        data: [maintenanceStats.pending, maintenanceStats.inProgress, maintenanceStats.completed],
+        backgroundColor: ["#ff4d4f", "#faad14", "#52c41a"],
+      },
+    ],
+  };
+
+  const doughnutChartData = {
+    labels: ["Available", "Inactive", "Assigned"],
+    datasets: [
+      {
+        data: [technicianStats.available, technicianStats.inactive, technicianStats.assigned],
+        backgroundColor: ["#52c41a", "#ff4d4f", "#1890ff"],
+        hoverOffset: 4,
+      },
+    ],
+  };
+  
   const updateLineChart = (data) => {
     const formatDataByTime = (timeframe) => {
       let labels = [];
@@ -149,39 +205,59 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div style={{ padding: "20px" }}>
-      <Title level={2} style={{ textAlign: "center" }}>Admin Dashboard</Title>
+    <div style={{ padding: "10px", paddingTop:"2px" }}>
+      <h4 level={5} style={{ textAlign: "left", marginBottom:"10px" }}>Admin/ Dashboard</h4>
 
       <Row gutter={[16, 16]}>
         {[
-          { title: "Total Requests", value: maintenanceStats.total, icon: <FileDoneOutlined style={{ fontSize: "30px", color: "#1890ff",  }} /> },
-          { title: "Pending Requests", value: maintenanceStats.pending, icon: <HourglassOutlined style={{ fontSize: "30px", color: "#ff4d4f" }} /> },
-          { title: "Completed Requests", value: maintenanceStats.completed, icon: <SettingOutlined style={{ fontSize: "30px", color: "#52c41a" }} /> },
-          { title: "Requests In Progress", value: maintenanceStats.inProgress, icon: <CalendarOutlined style={{ fontSize: "30px", color: "#faad14" }} /> },
-        ].map(({ title, value, icon }) => (
+          { title: "Total Requests", value: maintenanceStats.total, percentage: totalp, icon: <FileDoneOutlined style={{ fontSize: "35px", color: "#A61B22",  }} /> },
+          { title: "Pending Requests", value: maintenanceStats.pending, percentage: pendingp, icon: <HourglassOutlined style={{ fontSize: "35px", color: "#A61B22" }} /> },
+          { title: "Completed Requests", value: maintenanceStats.completed, percentage: completedp, icon: <SettingOutlined style={{ fontSize: "35px", color: "#A61B22" }} /> },
+          { title: "Requests In Progress", value: maintenanceStats.inProgress, percentage: inProgressp, icon: <CalendarOutlined style={{ fontSize: "35px", color: "#A61B22" }} /> },
+        ].map(({ title, value, icon, percentage }) => (
           <Col xs={24} sm={12} md={6} key={title}>
             <Card
               size="small"
               bordered={false}
               style={{
-                padding: "10px",
+                padding: "5px",
                 boxShadow: "0 0 5px rgba(0, 0, 0, 0.1)",
-                borderTop: "5px solid #A61B22",
+                borderBottom: "5px solid #02245b",
+                position: "relative",
               }}
             >
+              {/* Percentage Display */}
+              <div
+                style={{
+                  position: "absolute",
+                  top: "5px",
+                  right: "10px",
+                  backgroundColor: "#f0f0f0",
+                  padding: "3px 8px",
+                  borderRadius: "12px",
+                  fontSize: "11px",
+                  fontWeight: "bold",
+                  color: "#02245b",
+                }}
+              >
+                {percentage}%
+              </div>
+
               <Row gutter={[16, 0]} align="middle">
                 {/* Icon Column */}
-                <Col span={6} style={{ textAlign: "center", color: "#A61B22" }}>
-                  <div style={{ fontSize: "40px" }}>{icon}</div>
+                <Col span={6} style={{ textAlign: "center" }}>
+                  <div style={{ fontSize: "40px", backgroundColor: "rgba(223, 29, 29, 0.1)", borderRadius: "5px" }}>
+                    {icon}
+                  </div>
                 </Col>
 
                 {/* Text Column */}
-                <Col span={18} >
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
+                <Col span={18}>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
                     <Title level={5} style={{ marginBottom: "2px", color: "#333", fontSize: "14px" }}>
                       {title}
                     </Title>
-                    <Title level={3} style={{ margin: 0, color: "#1890ff", fontSize: "24px", textAlign:"center", backgroundColor:"red"}}>
+                    <Title level={3} style={{ margin: 0, color: "#1890ff", fontSize: "24px" }}>
                       {value}
                     </Title>
                   </div>
@@ -189,6 +265,7 @@ const AdminDashboard = () => {
               </Row>
             </Card>
           </Col>
+
 
 
         ))}
@@ -232,6 +309,40 @@ const AdminDashboard = () => {
           </Card>
         </Col>
       </Row>
+
+      <Row gutter={[16, 16]} style={{ marginTop: "20px" }}>
+        <Col xs={24} md={12}>
+          <Card title="Requests by Status" bordered={false}>
+            {barChartData && (
+              <Bar
+              data={statusBarChartData}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: "y", // Makes the bar chart horizontal
+                plugins: { 
+                  legend: { display: true }, 
+                  tooltip: { enabled: true } 
+                }
+              }}
+              style={{ height: "300px" }}
+            />
+            )}
+          </Card>
+        </Col>
+
+        <Col xs={24} md={12}>
+          <Card title="Technician Availability" bordered={false}>
+            <Doughnut 
+              data={doughnutChartData} 
+              options={{ responsive: true, maintainAspectRatio: false }} 
+              style={{ height: "300px" }}
+            />
+          </Card>
+        </Col>
+
+      </Row>
+
     </div>
   );
 };

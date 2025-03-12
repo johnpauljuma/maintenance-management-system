@@ -3,7 +3,7 @@
 import "@ant-design/v5-patch-for-react-19";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Layout, Menu, Avatar, Dropdown, Button, Drawer, Spin, Space, Grid } from "antd";
+import { Layout, Menu, Avatar, Dropdown, Button, Drawer, Spin, Space, Grid, Badge } from "antd";
 import {
   BellOutlined, UserOutlined, HomeOutlined, SettingOutlined, LogoutOutlined, MenuOutlined, ToolOutlined, 
   CheckCircleOutlined, FacebookOutlined, TwitterOutlined, LinkedinOutlined, InstagramOutlined, WhatsAppOutlined, YoutubeOutlined
@@ -23,6 +23,7 @@ const TechnicianLayout = ({ children }) => {
   const [technician, setTechnician] = useState(null);
   const [loading, setLoading] = useState(true);
   const [collapsed, setCollapsed] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     const storedTechnician = sessionStorage.getItem("technician");
@@ -83,6 +84,47 @@ const TechnicianLayout = ({ children }) => {
    
   ];
 
+  // Fetch unread notifications for admin
+  useEffect(() => {
+    const technicianId = sessionStorage.getItem("technicianId");
+    const fetchNotifications = async () => {
+      const { data, error } = await supabase
+        .from("notifications")
+        .select("*")
+        .eq("technician", true)
+        .eq("status", "unread")
+        .eq("technician_recipient_id", technicianId);
+
+        console.log("ID: => ", technicianId)
+
+      if (error) {
+        console.error("Error fetching notifications:", error.message);
+        message.error("Failed to load notifications.");
+        return;
+      }
+
+      // Set the unread count
+      setUnreadCount(data.length);
+    };
+
+    fetchNotifications();
+
+    // Re-fetch notifications in real-time
+    const subscription = supabase
+      .channel("notifications")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "notifications" },
+        fetchNotifications // Refetch on any change
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, []);
+
+
   if (loading) {
     return (
       <Layout style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -123,7 +165,11 @@ const TechnicianLayout = ({ children }) => {
 
         {/* Notifications & Profile */}
         <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
-          <BellOutlined style={{ fontSize: "20px", cursor: "pointer" }} />
+        <Link href="/technicians/notifications">
+          <Badge count={unreadCount} overflowCount={99} size="small">
+            <BellOutlined style={{ fontSize: "20px", cursor: "pointer", color:"white" }} />
+          </Badge>
+        </Link>
 
           <Dropdown menu={userMenu} placement="bottomRight" trigger={["click"]}>
             <Button type="text" style={{ color: "white", display: "flex", alignItems: "center", gap: "10px" }}>

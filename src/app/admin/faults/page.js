@@ -1,7 +1,7 @@
 "use client";
 
 import "@ant-design/v5-patch-for-react-19";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Card, Row, Col, Table, Tag, Button, Select, message, Input, Image, Pagination, } from "antd";
 import { ExclamationCircleOutlined, SyncOutlined, CheckCircleOutlined, UserOutlined, SearchOutlined, EyeOutlined } from "@ant-design/icons";
 import { supabase } from "../../../../lib/supabase";
@@ -112,30 +112,42 @@ const AdminManageFaults = () => {
     setModalVisible(true);
   };
 
-  // Filtered Faults
-  useEffect(() => {
-    let filtered = originalFaults.filter(
-      (fault) =>
-        fault.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        fault.category.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
-    if (statusFilter !== "All") {
-      filtered = filtered.filter((fault) => fault.status === statusFilter);
-    }
-    if (categoryFilter !== "All") {
-      filtered = filtered.filter((fault) => fault.category === categoryFilter);
-    }
-    if (technicianFilter !== "All") {
-      filtered = filtered.filter((fault) =>
-        technicianFilter === "Unassigned"
-          ? !fault.assigned_technician
-          : fault.assigned_technician
-      );
-    }
-
-    setFaults(filtered);
-  }, [searchTerm, statusFilter, categoryFilter, technicianFilter, originalFaults]);
+  const filteredFaults = useMemo(() => {
+    return allFaults.filter((fault) => {
+      // Search filter (by title or category)
+      if (
+        searchTerm &&
+        !fault.title.toLowerCase().includes(searchTerm.toLowerCase()) &&
+        !fault.category.toLowerCase().includes(searchTerm.toLowerCase()) &&
+        !fault.description.toLowerCase().includes(searchTerm.toLowerCase()) &&
+        !fault.location.toLowerCase().includes(searchTerm.toLowerCase()) &&
+        !fault.id.toString().includes(searchTerm) // ✅ Convert id to string
+      ) {
+        return false;
+      }      
+  
+      // Status filter
+      if (statusFilter !== "All" && fault.status !== statusFilter) {
+        return false;
+      }
+  
+      // Category filter
+      if (categoryFilter !== "All" && fault.category !== categoryFilter) {
+        return false;
+      }
+  
+      // Technician filter
+      if (technicianFilter === "Unassigned" && fault.assigned_technician_id) {
+        return false;
+      }
+      if (technicianFilter === "Assigned" && !fault.assigned_technician_id) {
+        return false;
+      }
+  
+      return true;
+    });
+  }, [searchTerm, statusFilter, categoryFilter, technicianFilter, allFaults]);
+  
 
   const columns = [
     {
@@ -191,21 +203,21 @@ const AdminManageFaults = () => {
   
 
   return (
-    <div style={{ padding: "20px" }}>
-      <h2 style={{ textAlign: "center", marginBottom: "20px" }}>Manage Faults</h2>
+    <div style={{ padding: "10px", paddingTop:"2px" }}>
+      <h4 style={{ textAlign: "left", marginBottom: "10px" }}>Admin/ Faults</h4>
 
       {/* Overview Cards */}
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12} md={6}>
-          <Card bordered={false} style={{ textAlign: "center" }}>
-            <ExclamationCircleOutlined style={{ fontSize: "40px", color: "#ff4d4f" }} />
+          <Card size="small" bordered={false} style={{ textAlign: "center", boxShadow:"0 0 5px", borderTop:"5px #A61b22 solid " }}>
+            <ExclamationCircleOutlined style={{ fontSize: "35px", color: "#ff4d4f" }} />
             <h3>New Faults</h3>
             <p>{originalFaults.filter((fault) => fault.status === "Pending").length}</p>
           </Card>
         </Col>
 
         <Col xs={24} sm={12} md={6}>
-          <Card bordered={false} style={{ textAlign: "center" }}>
+        <Card size="small" bordered={false} style={{ textAlign: "center", boxShadow:"0 0 5px", borderTop:"5px #A61b22 solid " }}>
             <SyncOutlined style={{ fontSize: "40px", color: "#faad14" }} />
             <h3>In Progress</h3>
             <p>{originalFaults.filter((fault) => fault.status === "In Progress").length}</p>
@@ -213,15 +225,15 @@ const AdminManageFaults = () => {
         </Col>
 
         <Col xs={24} sm={12} md={6}>
-          <Card bordered={false} style={{ textAlign: "center" }}>
+        <Card size="small" bordered={false} style={{ textAlign: "center", boxShadow:"0 0 5px", borderTop:"5px #A61b22 solid " }}>
             <CheckCircleOutlined style={{ fontSize: "40px", color: "#52c41a" }} />
-            <h3>Unresolved</h3>
-            <p>{originalFaults.filter((fault) => fault.status === "Cancelled").length}</p>
+            <h3>Completed</h3>
+            <p>{originalFaults.filter((fault) => fault.status === "completed").length}</p>
           </Card>
         </Col>
 
         <Col xs={24} sm={12} md={6}>
-          <Card bordered={false} style={{ textAlign: "center" }}>
+        <Card size="small" bordered={false} style={{ textAlign: "center", boxShadow:"0 0 5px", borderTop:"5px #A61b22 solid " }}>
             <UserOutlined style={{ fontSize: "40px", color: "#1890ff" }} />
             <h3>Available Technicians</h3>
             <p>{availableTechnicians}</p>
@@ -231,8 +243,15 @@ const AdminManageFaults = () => {
 
       {/* Unassigned Faults */}
       <h3 style={{ margin: "20px 0" }}>Unassigned Faults</h3>
-      <Row gutter={[16, 16]}>
-        {unassignedFaults
+      {unassignedFaults.length === 0 ? (
+        <div>
+          <p>
+            All your faults are assigned!
+          </p>
+        </div>
+      ) : (
+        <Row gutter={[16, 16]}>
+        {unassignedFaults 
           .slice(showAllUnassigned ? 0 : (currentPage - 1) * pageSize, showAllUnassigned ? unassignedFaults.length : currentPage * pageSize)
           .map((fault) => (
             <Col xs={24} sm={12} md={8} key={fault.id}>
@@ -287,6 +306,8 @@ const AdminManageFaults = () => {
             </Col>
           ))}
       </Row>
+      )}
+      
 
 
       <div style={{ marginTop: "10px", marginBottom: "20px", justifyContent: "end",  }}>
@@ -337,7 +358,7 @@ const AdminManageFaults = () => {
       </Row>
 
       <Table 
-        columns={columns} dataSource={allFaults} loading={loading} rowKey="id" 
+        columns={columns} dataSource={filteredFaults} loading={loading} rowKey="id" 
         pagination={{
           pageSize: tablePageSize, // Use the state value
           showSizeChanger: true,

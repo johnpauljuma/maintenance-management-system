@@ -66,7 +66,7 @@ const TechnicianNotifications = () => {
       .channel("notifications")
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "notifications", filter: `recipient_id=eq.${technicianId}` },
+        { event: "INSERT", schema: "public", table: "notifications", filter: `technician_recipient_id=eq.${technicianId}` },
         (payload) => {
           setNotifications((prev) => [payload.new, ...prev]);
           message.info("New notification received!");
@@ -74,7 +74,37 @@ const TechnicianNotifications = () => {
       )
       .subscribe();
   };
-
+  //
+  const listenForTechnicianNotifications = (technicianId) => {
+    return supabase
+      .channel("notifications")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notifications",
+          filter: `technician_recipient_id=eq.${technicianId}`,
+        },
+        (payload) => {
+          setNotifications((prev) => {
+            const exists = prev.some((n) => n.notification_id === payload.new.notification_id);
+            return exists ? prev : [payload.new, ...prev];
+          });
+        }
+      )
+      .subscribe();
+  };
+  useEffect(() => {
+    if (technicianId) {
+      const subscription = listenForTechnicianNotifications(technicianId);
+  
+      return () => {
+        subscription.unsubscribe(); // Cleanup on component unmount
+      };
+    }
+  }, [technicianId]);
+//  
   // Mark Notification as Read
   const markAsRead = async (id) => {
     const { error } = await supabase.from("notifications").update({ status: "read" }).eq("notification_id", id);

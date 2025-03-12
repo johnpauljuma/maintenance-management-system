@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Layout, Menu, Avatar, Dropdown, Button, Drawer } from "antd";
+import { Layout, Menu, Avatar, Dropdown, Button, Drawer,Badge } from "antd";
 import {
   HomeOutlined,
   SettingOutlined,
@@ -18,6 +18,7 @@ import {
 } from "@ant-design/icons";
 import Link from "next/link";
 import AppFooter from "../components/AdminFooter";
+import { supabase } from "../../../lib/supabase";
 
 const { Header, Sider, Content, Footer } = Layout;
 
@@ -26,6 +27,7 @@ const AdminLayout = ({ children }) => {
   const pathname = usePathname(); // ✅ Get current route for sidebar highlight
   const [collapsed, setCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     // Check if admin is logged in
@@ -60,6 +62,42 @@ const AdminLayout = ({ children }) => {
     return "dashboard"; // Default to dashboard
   };
 
+  // Fetch unread notifications for admin
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      const { data, error } = await supabase
+        .from("notifications")
+        .select("*")
+        .eq("admin", "yes")
+        .eq("status", "unread");
+
+      if (error) {
+        console.error("Error fetching notifications:", error.message);
+        message.error("Failed to load notifications.");
+        return;
+      }
+
+      // Set the unread count
+      setUnreadCount(data.length);
+    };
+
+    fetchNotifications();
+
+    // Re-fetch notifications in real-time
+    const subscription = supabase
+      .channel("notifications")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "notifications" },
+        fetchNotifications // Refetch on any change
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, []);
+  
   // Sidebar menu items
   const sidebarItems = [
     {
@@ -77,7 +115,7 @@ const AdminLayout = ({ children }) => {
       icon: <TeamOutlined />,
       label: <Link href="/admin/technicians">Manage Technicians</Link>,
     },
-    {
+    /*{
       key: "work-orders",
       icon: <BranchesOutlined />,
       label: <Link href="/admin/work-orders">Work Orders</Link>,
@@ -86,7 +124,7 @@ const AdminLayout = ({ children }) => {
       key: "reports",
       icon: <BarChartOutlined />,
       label: <Link href="/admin/reports">Reports</Link>,
-    },
+    },*/
     {
       key: "settings",
       icon: <SettingOutlined />,
@@ -128,8 +166,13 @@ const AdminLayout = ({ children }) => {
 
         {/* Right Side: Notifications & Profile */}
         <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
-          <BellOutlined style={{ fontSize: "20px", cursor: "pointer" }} />
-
+          {/* Notification Bell with Badge */}
+          <Link href="admin/notifications">
+            <Badge count={unreadCount} overflowCount={99} size="small">
+              <BellOutlined style={{ fontSize: "20px", cursor: "pointer", color:"white" }} />
+            </Badge>
+          </Link>
+         
           {/* Profile Dropdown */}
           <Dropdown
             menu={{

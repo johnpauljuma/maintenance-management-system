@@ -68,6 +68,41 @@ const ReportModal = ({ visible, onClose, task }) => {
 
       if (workloadUpdateError) throw workloadUpdateError;
 
+      // Notify the assigned technician
+      await supabase.from("notifications").insert([
+        {
+          user_id: task.assigned_technician_id, 
+          message: `You have successfully completed ${task.client}'s request and your report have been received.`, 
+          technician: "yes", 
+          technician_recipient_id: task.assigned_technician_id, 
+          date: new Date(), 
+          status: "unread",
+        },
+      ]);
+
+      // Notify the client
+      await supabase.from("notifications").insert([
+        {
+          user_id: task.assigned_technician_id, 
+          message: `Your request, (Request ID: ${task.id}), has been completed successfully. The assigned technician on site was **${task.assigned_technician_name} (ID: ${task.assigned_technician_id})**. Please take a few minutes to rate our service.`, 
+          client: "yes", 
+          client_recipient_id: task.user_id, 
+          date: new Date(), 
+          status: "unread",
+        },
+      ]);
+
+      // Notify the admin
+      await supabase.from("notifications").insert([
+        {
+          user_id: task.assigned_technician_id, 
+          message: `Request by ${task.client}, (Request ID: ${task.id}) have been completed successfully and report submitted. Assigned technician: ${task.assigned_technician_id} - ${task.assigned_technician_name}.`,
+          admin: "yes",
+          date: new Date(),
+          status: "unread",
+        },
+      ]);
+
       message.success("Report submitted successfully!");
       form.resetFields();
       setFileList([]); // Clear uploaded files

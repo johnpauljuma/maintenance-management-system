@@ -3,9 +3,10 @@
 import "@ant-design/v5-patch-for-react-19";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Layout, Menu, Avatar, Dropdown, Button, Drawer, Spin, Space } from "antd";
+import { Layout, Menu, Avatar, Dropdown, Button, Drawer, Spin, Space, Badge } from "antd";
 import { BellOutlined, UserOutlined, HomeOutlined, SettingOutlined, LogoutOutlined, MenuOutlined, PlusCircleOutlined, OrderedListOutlined,
-  QuestionCircleOutlined, FacebookOutlined, TwitterOutlined, LinkedinOutlined, InstagramOutlined, WhatsAppOutlined, YoutubeOutlined, FileSearchOutlined
+  QuestionCircleOutlined, FacebookOutlined, TwitterOutlined, LinkedinOutlined, InstagramOutlined, WhatsAppOutlined, YoutubeOutlined, FileSearchOutlined,
+  StarOutlined, LikeOutlined,
 } from "@ant-design/icons";
 import Link from "next/link";
 import { supabase } from "../../../lib/supabase";
@@ -20,6 +21,7 @@ const ClientLayout = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [collapsed, setCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -41,6 +43,7 @@ const ClientLayout = ({ children }) => {
           router.replace("/login"); // Redirect if no session
           return;
         }
+       
 
         // Store fetched user details in sessionStorage
         sessionStorage.setItem("clientDetails", JSON.stringify(data.user));
@@ -50,7 +53,7 @@ const ClientLayout = ({ children }) => {
       } finally {
         setLoading(false);
       }
-    };
+    }; 
 
     fetchUser();
 
@@ -106,10 +109,52 @@ const ClientLayout = ({ children }) => {
     if (pathname.startsWith("/clients/my-requests")) return "my-requests";
     if (pathname.startsWith("/clients/inspections")) return "inspections";
     if (pathname.startsWith("/clients/notifications")) return "notifications";
+    if (pathname.startsWith("/clients/feedback")) return "feedback";
     if (pathname.startsWith("/clients/help")) return "help";
     return "home"; // Default to home
   };
 
+  // Fetch unread notifications for admin
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      const { data, error } = await supabase
+        .from("notifications")
+        .select("*")
+        .eq("client", true)
+        .eq("status", "unread")
+        .eq("client_recipient_id", user?.id);
+
+        console.log("User ID => ",user?.id)
+  
+      if (error) {
+        console.error("Error fetching notifications:", error.message);
+        return;
+      }
+  
+      setUnreadCount(data.length);
+    };
+  
+    fetchNotifications(); // Fetch initially
+  
+    const subscription = supabase
+      .channel("notifications")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "notifications" },
+        fetchNotifications // Re-fetch on new notifications
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "notifications", filter: "status=eq.unread" },
+        fetchNotifications // Re-fetch when a notification is marked unread/read
+      )
+      .subscribe();
+  
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, [user]);
+  
   // Sidebar menu items
   const sidebarItems = [
     {
@@ -136,6 +181,11 @@ const ClientLayout = ({ children }) => {
       key: "notifications",
       icon: <BellOutlined />,
       label: <Link href="/clients/notifications">Notifications</Link>,
+    },
+    {
+      key: "feedback",
+      icon: <LikeOutlined />,
+      label: <Link href="/clients/feedback">Feedback</Link>,
     },
     {
       key: "help",
@@ -182,7 +232,9 @@ const ClientLayout = ({ children }) => {
         {/* Right Side: Notifications & Profile */}
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
         <Link href="/clients/notifications">
-          <BellOutlined style={{ fontSize: "20px", cursor: "pointer" }} />
+          <Badge count={unreadCount} overflowCount={99} size="small">
+            <BellOutlined style={{ fontSize: "20px", cursor: "pointer", color:"white" }} />
+          </Badge>
         </Link>
 
 
