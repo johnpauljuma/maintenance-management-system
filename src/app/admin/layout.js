@@ -58,6 +58,7 @@ const AdminLayout = ({ children }) => {
     if (pathname.startsWith("/admin/tasks")) return "tasks";
     if (pathname.startsWith("/admin/work-orders")) return "work-orders";
     if (pathname.startsWith("/admin/settings")) return "settings";
+    if (pathname.startsWith("/admin/support-center")) return "support-center";
     if (pathname.startsWith("/admin/notifications")) return "notifications";
     return "dashboard"; // Default to dashboard
   };
@@ -129,6 +130,11 @@ const AdminLayout = ({ children }) => {
       key: "settings",
       icon: <SettingOutlined />,
       label: <Link href="/admin/settings">Settings</Link>,
+    },
+    {
+      key: "support-center",
+      icon: <SettingOutlined />,
+      label: <Link href="/admin/support-center">Support Center</Link>,
     },
     {
       key: "notifications",

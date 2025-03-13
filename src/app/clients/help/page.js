@@ -1,8 +1,8 @@
 "use client";
 
-import { Layout, Card, Typography, Collapse, Button, Form, Input, message } from "antd";
+import { Layout, Card, Typography, Collapse, Button, Form, Input, message, Col, Row } from "antd";
 import { MailOutlined, PhoneOutlined } from "@ant-design/icons";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "../../../../lib/supabase";
 
 const { Content } = Layout;
@@ -11,24 +11,58 @@ const { TextArea } = Input;
 
 const HelpPage = () => {
   const [loading, setLoading] = useState(false);
+  const [user, setUser] = useState(null);
+
+  // Fetch logged-in client from session
+  useEffect(() => {
+    const storedUser = sessionStorage.getItem("clientDetails");
+    if (storedUser) {
+      const client = JSON.parse(storedUser);
+      setUser(client);
+    } else {
+      message.error("User not found. Please log in again.");
+    }
+  }, []);
 
   const onFinish = async (values) => {
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.from("support_requests").insert([
+      const { error } = await supabase.from("support_requests").insert([
         {
-          name: values.name,
+          client_name: values.name,
           email: values.email,
+          phone: values.phone, 
           message: values.message,
-          status: "Pending",
-          created_at: new Date(),
         },
       ]);
 
       if (error) {
         throw new Error(error.message);
       }
+
+      // Notify the client
+      await supabase.from("notifications").insert([
+        {
+          user_id: user.id, 
+          message: `Your inquiry has been successfully submitted! Our support team will review it, and one of our administrators will be in touch with you shortly. Thank you for reaching out!`, 
+          client: "yes", 
+          client_recipient_id: user.id, 
+          date: new Date(), 
+          status: "unread",
+        },
+      ]);
+
+      // Notify the admin
+      await supabase.from("notifications").insert([
+        {
+          user_id: user.id, 
+          message: `You have received a new support request from ${values.name}. Please review the details and take the necessary action promptly.`,
+          admin: "yes",
+          date: new Date(),
+          status: "unread",
+        },
+      ]);
 
       message.success("Your support request has been submitted!");
     } catch (error) {
@@ -39,7 +73,7 @@ const HelpPage = () => {
     }
   };
 
-  // ✅ Define FAQ items using `items` instead of `children`
+  // Define FAQ items using `items` instead of `children`
   const faqItems = [
     {
       key: "1",
@@ -93,24 +127,43 @@ const HelpPage = () => {
         {/* Support Request Form */}
         <Card title="Submit a Support Request" bordered={false} style={{ maxWidth: 800, margin: "auto" }}>
           <Form layout="vertical" onFinish={onFinish}>
-            <Form.Item
-              label="Full Name"
-              name="name"
-              rules={[{ required: true, message: "Please enter your full name!" }]}
-            >
-              <Input placeholder="Enter your full name" />
-            </Form.Item>
+            <Row gutter={16}>
+              <Col span={8} flex="auto">
+                <Form.Item
+                  label="Full Name"
+                  name="name"
+                  rules={[{ required: true, message: "Please enter your full name!" }]}
+                >
+                  <Input placeholder="Enter your full name" />
+                </Form.Item>
+              </Col>
 
-            <Form.Item
-              label="Email Address"
-              name="email"
-              rules={[
-                { required: true, message: "Please enter your email!" },
-                { type: "email", message: "Enter a valid email address!" },
-              ]}
-            >
-              <Input placeholder="Enter your email" />
-            </Form.Item>
+              <Col span={8} flex="auto">
+                <Form.Item
+                  label="Email Address"
+                  name="email"
+                  rules={[
+                    { required: true, message: "Please enter your email!" },
+                    { type: "email", message: "Enter a valid email address!" },
+                  ]}
+                >
+                  <Input placeholder="Enter your email" />
+                </Form.Item>
+              </Col>
+
+              <Col span={8} flex="auto">
+                <Form.Item
+                  label="Phone Number"
+                  name="phone"
+                  rules={[
+                    { required: true, message: "Please enter your phone number!" },
+                    { pattern: /^[0-9]+$/, message: "Enter a valid phone number!" },
+                  ]}
+                >
+                  <Input placeholder="Enter your phone number" />
+                </Form.Item>
+              </Col>
+            </Row>
 
             <Form.Item
               label="Describe Your Issue"

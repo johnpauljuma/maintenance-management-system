@@ -70,10 +70,10 @@ const NewRequest = () => {
         preferred_date: values.preferredDate?.format("YYYY-MM-DD"),
         urgency: values.urgency,
         location: values.location,
-        image_url: imageUrl, // Store uploaded image URL
-        status: "Pending", // Default status
+        image_url: imageUrl, 
+        status: "Pending",
         created_at: new Date(),
-        user_id: userId, // ✅ Store the logged-in user's ID
+        user_id: userId, 
       },
     ]);
 
