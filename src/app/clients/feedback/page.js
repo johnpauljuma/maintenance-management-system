@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Card, Form, Input, Button, Rate, Col, Row, Typography, List, Avatar, Divider, Spin, message, label } from "antd";
 import { supabase } from "../../../../lib/supabase";
+import {sql} from '@supabase/supabase-js'
 
 const { Title, Text } = Typography;
 
@@ -11,7 +12,8 @@ const FeedbackPage = () => {
   const [requests, setRequests] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  const [submitting, setSubmitting] = useState({});
+  const [submittingGeneral, setSubmittingGeneral] = useState(false);
 
   // Fetch logged-in client from session
   useEffect(() => {
@@ -23,6 +25,7 @@ const FeedbackPage = () => {
       message.error("User not found. Please log in again.");
     }
   }, []);
+
 
   // Fetch client's unrated completed requests
   useEffect(() => {
@@ -49,12 +52,13 @@ const FeedbackPage = () => {
     fetchRequests();
   }, [user]);
 
+ 
   // Fetch existing feedback from other clients
   useEffect(() => {
     const fetchReviews = async () => {
       const { data, error } = await supabase
         .from("feedback")
-        .select("full_name, rating, comment")
+        .select("*")
         .order("created_at", { ascending: false });
 
       if (error) {
@@ -69,50 +73,123 @@ const FeedbackPage = () => {
 
   // Submit general feedback
   const handleGeneralFeedback = async (values) => {
-    setSubmitting(true);
+    if (!user) {
+      message.error("User not found. Please log in.");
+      return;
+    }
+  
+    setSubmittingGeneral(true);
+    
     const { error } = await supabase.from("feedback").insert([
       {
-        user_id: user?.user_metadata?.id,
-        full_name: user?.user_metadata?.fullName,
         rating: values.rating,
-        comment: values.comment,
+        positive_comment: values.love,
+        negative_comment: values.dislike,
+        recommendation: values.change,
       },
     ]);
-
+  
     if (error) {
       message.error("Error submitting feedback.");
       console.error(error);
     } else {
       message.success("Thank you for your feedback!");
     }
-    setSubmitting(false);
+    
+    setSubmittingGeneral(false);
   };
+  
 
   // Submit request-specific feedback
-  const handleRequestFeedback = async (requestId, values) => {
-    setSubmitting(true);
-    const { error } = await supabase
-      .from("requests")
-      .update({ rating: values.rating, feedback: values.comment })
-      .eq("id", requestId);
-
-    if (error) {
-      message.error("Error submitting request feedback.");
-      console.error(error);
-    } else {
-      message.success("Feedback submitted successfully!");
-      setRequests((prev) => prev.filter((r) => r.id !== requestId));
+  const handleRequestFeedback = async (requestId, values, technicianId, technicianName, requestTitle, clientName) => {
+    if (!user) {
+        message.error("User not found. Please log in.");
+        return;
     }
-    setSubmitting(false);
-  };
+
+    // Set loading state only for the clicked request
+    setSubmitting((prev) => ({ ...prev, [requestId]: true }));
+
+    // Insert into technician_feedback table
+    const { error: feedbackError } = await supabase.from("technician_feedback").insert([
+        {
+            request_id: requestId,
+            assigned_technician_id: technicianId,
+            request_title: requestTitle,
+            client_name: clientName,
+            technician_name: technicianName,
+            rating: values.rating,
+            comment: values.comment,
+        },
+    ]);
+
+    if (feedbackError) {
+        message.error("Error submitting technician feedback.");
+        console.error(feedbackError);
+        setSubmitting((prev) => ({ ...prev, [requestId]: false })); // Reset only this request's loading state
+        return;
+    }
+
+    // Update requests table to mark it as rated
+    const { error: updateError } = await supabase
+        .from("requests")
+        .update({ rating: values.rating })
+        .eq("id", requestId);
+
+    if (updateError) {
+        message.error("Error updating request status.");
+        console.error(updateError);
+    }
+
+    // Fetch the current ratings
+    const { data: technicianData, error: technicianError } = await supabase
+    .from("technicians")
+    .select("rating, number_of_ratings")
+    .eq("technician_id", technicianId)
+    .single();
+
+    if (technicianError) throw technicianError;
+    if (!technicianData) throw new Error("Technician not found.");
+
+    const currentRating = technicianData.rating;
+    const currentNumberOfRatings = technicianData.number_of_ratings;
+
+    const newRating = currentRating + values.rating; 
+    const newNumberOfRatings = currentNumberOfRatings + 1; 
+
+    //Update technician ratings
+    const { error: updateTechniciansError } = await supabase
+    .from("technicians")
+    .update({
+      rating: newRating, 
+      number_of_ratings: newNumberOfRatings 
+    })
+    .eq("technician_id", technicianId);
+  
+    if (updateTechniciansError) {
+    message.error("Error updating technician rating.");
+    console.error(updateTechniciansError);
+    }
+
+    else {
+        message.success("Feedback submitted successfully!");
+        setRequests((prev) => prev.filter((r) => r.id !== requestId));
+    }
+
+    // Reset loading state only for this request
+    setSubmitting((prev) => ({ ...prev, [requestId]: false }));
+};
+
+  
 
   return (
     <Row gutter={[16, 16]} style={{ padding: "20px" }}>
       {/* Left: General Feedback & Reviews */}
       <Col xs={24} md={16}>
         <Title level={3} style={{ color: "#02245B" }}>We Value Your Feedback</Title>
-        <Text>
-          Your thoughts help us improve our services. Please take a moment to rate us and share your experience.
+        <Text style={{fontWeight:"bold"}}>
+            Your thoughts help us improve our services. Please take a moment to rate us and share your experience. 
+            Your feedback is completely anonymous, so feel free to be honest!
         </Text>
 
         <Card title={<Title level={4}>General Feedback</Title>} style={{ margin: "20px 0", paddingRight:"10px", paddingLeft:"10px", paddingBottom:"0px" }}>
@@ -150,7 +227,7 @@ const FeedbackPage = () => {
             </Row>
 
             <Form.Item>
-              <Button type="primary" htmlType="submit" loading={submitting}>Submit Feedback</Button>
+              <Button type="primary" htmlType="submit" loading={submittingGeneral}>Submit Feedback</Button>
             </Form.Item>
           </Form>
         </Card>
@@ -191,19 +268,43 @@ const FeedbackPage = () => {
           <Text>No pending feedback requests.</Text>
         ) : (
           requests.map((req) => (
-            <Card key={req.id} title={req.title} style={{ marginBottom: "15px" }}>
-              <p><strong>Category:</strong> {req.category}</p>
-              <p><strong>Technician:</strong> {req.assigned_technician_name}</p>
+            <Card key={req.id} title={req.title} style={{ marginBottom: "15px", paddingBottom:"0px" }}>
+              <Row gutter={16} style={{marginBottom:"5px"}}>
+                <Col span={8}><p><strong>Request ID:</strong> </p></Col>
+                <Col span={8}><p><strong>Category:</strong> </p></Col>
+                <Col span={8}><p><strong>Technician:</strong> </p></Col>
+              </Row>
+              <Row gutter={16}>
+                <Col span={8}>{req.id}</Col>
+                <Col span={8}>{req.category}</Col>
+                <Col span={8}>{req.assigned_technician_name}</Col>
+              </Row>
+              
+              <Divider/>
 
-              <Form onFinish={(values) => handleRequestFeedback(req.id, values)}>
-                <Form.Item name="rating" rules={[{ required: true, message: "Please rate the service!" }]}>
-                  <Rate />
-                </Form.Item>
-                <Form.Item name="comment">
-                  <Input.TextArea placeholder="Write your feedback (optional)" />
-                </Form.Item>
-                <Form.Item>
-                  <Button type="primary" htmlType="submit" loading={submitting}>Submit Feedback</Button>
+              <p><strong>Submitted on:</strong> {req.created_at}</p>
+
+              <Divider/>
+
+              <Form onFinish={(values) => handleRequestFeedback(req.id, values, req.assigned_technician_id, req.assigned_technician_name, req.title, req.client)}>
+                <Row gutter={[16, 16]}>
+                    <Col span={10} flex="auto">
+                        <label>Rate our Technician</label>
+                        <Form.Item name="rating" rules={[{ required: true, message: "Please rate the service!" }]}>
+                        <Rate />
+                        </Form.Item>
+                    </Col>
+
+                    <Col span={16} flex="auto">
+                        <label>Comments (optional)</label>
+                        <Form.Item name="comment">
+                        <Input.TextArea placeholder="Write your feedback (optional)" />
+                        </Form.Item>
+                    </Col>
+                </Row>
+
+                <Form.Item style={{float:"right"}}>
+                  <Button type="primary" htmlType="submit" loading={submitting[req.id] || false}>Submit Feedback</Button>
                 </Form.Item>
               </Form>
             </Card>

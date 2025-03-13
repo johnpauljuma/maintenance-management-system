@@ -54,8 +54,8 @@ const AdminManageFaults = () => {
       const { data: faultsData, error } = await supabase
         .from("requests")
         .select("*")
-        .eq("rejected", "Yes") // ✅ Only fetch rejected faults
-        .eq("status", "Pending") // ✅ Ensure the request is still pending
+        .eq("rejected", "Yes") 
+        .eq("status", "Pending") 
         .order("created_at", { ascending: false });
   
       if (error) {
@@ -63,7 +63,7 @@ const AdminManageFaults = () => {
       } else {
         setFaults(faultsData);
         setRejectedFaults(faultsData);
-        setUnassignedFaults(faultsData); // ✅ All fetched faults are unassigned
+        setUnassignedFaults(faultsData); 
       }
   
       setLoading(false);
