@@ -239,7 +239,7 @@ const ClientLayout = ({ children }) => {
 
 
           <Dropdown menu={userMenu} placement="bottomRight" trigger={["click"]}>
-            <Button type="text" style={{ color: "white", display: "flex", alignItems: "center", gap: "10px" }}>
+            <Button type="text" data-testid="user-profile-button" style={{ color: "white", display: "flex", alignItems: "center", gap: "10px" }}>
               {user?.user_metadata?.fullName || "User"}
               <Avatar
                 src={user?.user_metadata?.profilePic || "l"}
