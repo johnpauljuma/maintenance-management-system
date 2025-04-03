@@ -23,14 +23,23 @@ export async function POST(req) {
 
     // Format phone number
     const formattedPhone = phone.startsWith('0') ? `254${phone.substring(1)}` : phone;
-    const MPESA_CONSUMER_KEY = "Ka5BzpPETz1wznJw0P88GhZbhxghuhmjmu4YGA60xORsmGDL"
-    const MPESA_CONSUMER_SECRET = "MVO42xgcOnXA6PAypNmA9tqxBevZaydWZGwrRGuHfsyalm6AtjScJupwTjeOGDgA"
+    
+    // Sandbox credentials (should be in environment variables!)
+    const MPESA_CONSUMER_KEY = "Ka5BzpPETz1wznJw0P88GhZbhxghuhmjmu4YGA60xORsmGDL";
+    const MPESA_CONSUMER_SECRET = "MVO42xgcOnXA6PAypNmA9tqxBevZaydWZGwrRGuHfsyalm6AtjScJupwTjeOGDgA";
+    const MPESA_SHORTCODE = "174379"; // Sandbox test shortcode
+    const MPESA_PASSKEY = "bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78"; // Sandbox test passkey
+    const MPESA_CALLBACK_URL = "https://maintenance-management-system-two.vercel.app/api/mpesa/callback";
 
     // Get access token
     const auth = Buffer.from(`${MPESA_CONSUMER_KEY}:${MPESA_CONSUMER_SECRET}`).toString("base64");
     const tokenRes = await axios.get(
       "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials",
-      { headers: { Authorization: `Basic ${auth}` } }
+      { 
+        headers: { 
+          Authorization: `Basic ${auth}` 
+        } 
+      }
     );
 
     const accessToken = tokenRes.data.access_token;
@@ -39,24 +48,24 @@ export async function POST(req) {
       .replace(/[-:T.Z]/g, "")
       .slice(0, 14);
     
-    // Generate password dynamically
+    // Generate password dynamically (must match timestamp)
     const password = Buffer.from(
       `${MPESA_SHORTCODE}${MPESA_PASSKEY}${timestamp}`
     ).toString("base64");
 
-    // STK Push Payload (combining your structure with portal sample)
+    // STK Push Payload
     const payload = {
-      BusinessShortCode: 174379,
-      Password: "MTc0Mzc5YmZiMjc5ZjlhYTliZGJjZjE1OGU5N2RkNzFhNDY3Y2QyZTBjODkzMDU5YjEwZjc4ZTZiNzJhZGExZWQyYzkxOTIwMjUwNDAzMjMwODM4",
-      Timestamp: "20250403230838",
+      BusinessShortCode: MPESA_SHORTCODE,
+      Password: password, // Use dynamically generated password
+      Timestamp: timestamp, // Use current timestamp
       TransactionType: "CustomerPayBillOnline",
       Amount: amount,
       PartyA: formattedPhone,
-      PartyB: 174379,
+      PartyB: MPESA_SHORTCODE,
       PhoneNumber: formattedPhone,
-      CallBackURL: "https://maintenance-management-system-two.vercel.app/api/mpesa/callback",    
-      AccountReference: "Payment", // Can make this dynamic
-      TransactionDesc: "Payment for services" // Can make this dynamic
+      CallBackURL: MPESA_CALLBACK_URL,    
+      AccountReference: "Payment",
+      TransactionDesc: "Payment for services"
     };
 
     // Send request
