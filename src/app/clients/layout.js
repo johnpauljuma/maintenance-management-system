@@ -226,17 +226,18 @@ const ClientLayout = ({ children }) => {
           </Badge>
         </Link>
           <Dropdown menu={userMenu} placement="bottomRight" trigger={["click"]}>
-<<<<<<< HEAD
-            <Button type="text" data-testid="user-profile-button" style={{ color: "white", display: "flex", alignItems: "center", gap: "10px" }}>
-=======
+            <>
+            <Button type="text" data-testid="user-profile-button" style={{ color: "white", display: "flex", alignItems: "center", gap: "10px" }} />
+            
             <Button type="text" style={{ color: "white", display: "flex", alignItems: "center", gap: "10px" }}  data-testid="user-profile-button">
->>>>>>> e7c78d5 (added email and payment modules)
+
               {user?.user_metadata?.fullName || "User"}
               <Avatar
                 src={user?.user_metadata?.profilePic || "l"}
                 icon={!user?.user_metadata?.profilePic ? <UserOutlined /> : null}
               /> 
             </Button>
+            </>
           </Dropdown>
         </div>
       </Header>
