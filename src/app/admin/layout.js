@@ -146,22 +146,7 @@ const AdminLayout = ({ children }) => {
   return (
     <Layout style={{ minHeight: "100vh" }}>
       {/* Sticky Navbar */}
-      <Header
-        style={{
-          background: "#02245B",
-          color: "white",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: "0 20px",
-          position: "fixed",
-          top: 0,
-          width: "100%",
-          zIndex: 1000,
-          height: "64px",
-          boxShadow: "0 2px 5px rgba(0,0,0,0.2)",
-        }}
-      >
+      <Header style={{background: "#02245B", color: "white",display: "flex",justifyContent: "space-between",alignItems: "center",padding: "0 20px", position: "fixed",top: 0,width: "100%",zIndex: 1000,height: "64px",boxShadow: "0 2px 5px rgba(0,0,0,0.2)",}}>
         {/* Mobile Menu Toggle */}
         {isMobile && (
           <Button type="text" icon={<MenuOutlined />} onClick={() => setCollapsed(true)} style={{ color: "white" }} />
@@ -186,9 +171,7 @@ const AdminLayout = ({ children }) => {
                 {
                   key: "logout",
                   label: (
-                    <Button type="text" onClick={handleLogout} style={{ color: "red" }}>
-                      <LogoutOutlined /> Logout
-                    </Button>
+                    <Button type="text" onClick={handleLogout} style={{ color: "red" }}><LogoutOutlined /> Logout</Button>
                   ),
                 },
               ],
@@ -206,30 +189,13 @@ const AdminLayout = ({ children }) => {
       <Layout>
         {/* Sidebar (Desktop View) */}
         {!isMobile && (
-          <Sider
-            width={200}
-            style={{
-              background: "#fff",
-              height: "calc(100vh - 64px)",
-              position: "fixed",
-              left: 0,
-              top: "64px",
-              bottom: "60px",
-              boxShadow: "2px 0px 10px rgba(0,0,0,0.1)",
-            }}
-          >
+          <Sider width={200} style={{background: "#fff", height: "calc(100vh - 64px)", position: "fixed", left: 0, top: "64px", bottom: "60px", boxShadow: "2px 0px 10px rgba(0,0,0,0.1)",}}>
             <Menu mode="inline" selectedKeys={[getMenuKey()]} style={{ height: "100%", borderRight: 0 }} items={sidebarItems} />
           </Sider>
         )}
 
         {/* Sidebar (Mobile View) - Drawer */}
-        <Drawer
-          title="Admin Menu"
-          placement="left"
-          closable
-          onClose={() => setCollapsed(false)}
-          open={collapsed}
-        >
+        <Drawer title="Admin Menu" placement="left" closable onClose={() => setCollapsed(false)} open={collapsed}>
           <Menu mode="vertical" selectedKeys={[getMenuKey()]} items={sidebarItems} />
         </Drawer>
 

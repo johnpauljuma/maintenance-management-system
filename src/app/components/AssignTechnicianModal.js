@@ -143,7 +143,7 @@ const AssignTechnicianModal = ({ visible, onClose, requestId }) => {
       ]);
 
       message.success("Technician assigned successfully!");
-      onClose(); // Close modal after assignment
+      onClose();
     } catch (error) {
       console.error("Error assigning technician:", error.message);
       message.error("Failed to assign technician.");

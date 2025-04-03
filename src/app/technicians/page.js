@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import React from "react";
 import { Row, Col, Card, Typography, Table, Tag, message, Select } from "antd";
 import { Bar, Line } from "react-chartjs-2";
 import { ToolOutlined, ClockCircleOutlined, CheckCircleOutlined, FileDoneOutlined } from "@ant-design/icons";
@@ -71,16 +72,16 @@ const TechnicianDashboard = () => {
       const inProgress = tasks.filter((task) => task.status === "In Progress").length;
       const completed = tasks.filter((task) => task.status === "completed").length;
 
-       // ✅ Process trends based on selected filter
+       // Process trends based on selected filter
        setTaskStats({ totalTasks, pending, inProgress, completed });
        setAssignedTasks(tasks);
        setTaskTrends(processTaskTrends(tasks, timeFilter));
      };
  
      fetchTechnicianData();
-   }, [technicianId, timeFilter]); // Refetch when filter changes
+   }, [technicianId, timeFilter]); 
  
-   // 📊 Process task completion trends based on selected filter
+   // Process task completion trends based on selected filter
    const processTaskTrends = (tasks, filter) => {
      const trendData = {};
  
@@ -91,7 +92,7 @@ const TechnicianDashboard = () => {
  
          let key;
          if (filter === "daily") {
-           key = date.toISOString().split("T")[0]; // YYYY-MM-DD
+           key = date.toISOString().split("T")[0];
          } else if (filter === "weekly") {
            const weekStart = new Date(date.setDate(date.getDate() - date.getDay())).toISOString().split("T")[0];
            key = `Week of ${weekStart}`;
@@ -110,7 +111,7 @@ const TechnicianDashboard = () => {
      };
    };
 
-  // 📊 Bar Chart Data (Task Breakdown)
+  // Bar Chart Data (Task Breakdown)
   const barChartData = {
     labels: ["Pending", "In Progress", "Completed"],
     datasets: [
@@ -122,7 +123,7 @@ const TechnicianDashboard = () => {
     ],
   };
 
-  // 📈 Line Chart Data (Performance Trends)
+  // Line Chart Data (Performance Trends)
   const lineChartData = {
     labels: taskTrends.labels || [],
     datasets: [
@@ -136,7 +137,7 @@ const TechnicianDashboard = () => {
     ],
   };
 
-  // 📝 Table Columns
+  // Table Columns
   const columns = [
     {
       title: "Task ID",
@@ -174,53 +175,171 @@ const TechnicianDashboard = () => {
   ];
 
   return (
-    <div style={{ padding: "20px" }}>
-      <Title level={2} style={{ textAlign: "center", marginBottom: "20px" }}>
-        Technician Dashboard
+    <div style={{ padding: "10px", background: "#f8f9fa" }}>
+      {/* Header */}
+      <Title level={5} style={{ 
+        textAlign: "start", 
+        marginBottom: "10px",
+        color: "#2c3e50",
+        fontWeight: 600,
+        letterSpacing: "0.5px"
+      }}>
+        Technician/ Dashboard
       </Title>
 
+      {/* Summary Cards */}
       <Row gutter={[16, 16]}>
-        {/* Summary Cards */}
-        <Col xs={24} sm={12} md={6}>
-          <Card title="Total Tasks" bordered={false} style={{ textAlign: "center" }}>
-            <ToolOutlined style={{ fontSize: "40px", color: "#1890ff" }} />
-            <Title level={3}>{taskStats.totalTasks}</Title>
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card title="Pending Tasks" bordered={false} style={{ textAlign: "center" }}>
-            <ClockCircleOutlined style={{ fontSize: "40px", color: "#ff4d4f" }} />
-            <Title level={3}>{taskStats.pending}</Title>
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card title="In Progress" bordered={false} style={{ textAlign: "center" }}>
-            <FileDoneOutlined style={{ fontSize: "40px", color: "#faad14" }} />
-            <Title level={3}>{taskStats.inProgress}</Title>
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card title="Completed Tasks" bordered={false} style={{ textAlign: "center" }}>
-            <CheckCircleOutlined style={{ fontSize: "40px", color: "#52c41a" }} />
-            <Title level={3}>{taskStats.completed}</Title>
-          </Card>
-        </Col>
+        {[
+          { 
+            title: "Total Tasks", 
+            value: taskStats.totalTasks, 
+            icon: <ToolOutlined />, 
+            color: "#1890ff",
+            bgColor: "#e6f7ff"
+          },
+          { 
+            title: "Pending Tasks", 
+            value: taskStats.pending, 
+            icon: <ClockCircleOutlined />, 
+            color: "#ff4d4f",
+            bgColor: "#fff1f0"
+          },
+          { 
+            title: "In Progress", 
+            value: taskStats.inProgress, 
+            icon: <FileDoneOutlined />, 
+            color: "#faad14",
+            bgColor: "#fffbe6"
+          },
+          { 
+            title: "Completed Tasks", 
+            value: taskStats.completed, 
+            icon: <CheckCircleOutlined />, 
+            color: "#52c41a",
+            bgColor: "#f6ffed"
+          }
+        ].map((item) => (
+          <Col xs={24} sm={12} md={6} key={item.title}>
+            <Card 
+              hoverable
+              style={{ 
+                borderRadius: "12px",
+                boxShadow: "0 4px 8px rgba(0,0,0,0.05)",
+                border: "none",
+                transition: "all 0.3s ease",
+              }}
+              bodyStyle={{ 
+                padding: "20px",
+                textAlign: "center",
+              }}
+            >
+              <div style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: "56px",
+                height: "56px",
+                borderRadius: "12px",
+                backgroundColor: item.bgColor,
+                marginBottom: "16px"
+              }}>
+                {React.cloneElement(item.icon, { 
+                  style: { 
+                    fontSize: "24px", 
+                    color: item.color 
+                  } 
+                })}
+              </div>
+              <Title level={4} style={{ 
+                marginBottom: "8px", 
+                color: "#7f8c8d",
+                fontWeight: 500
+              }}>
+                {item.title}
+              </Title>
+              <Title level={2} style={{ 
+                margin: 0, 
+                color: "#2c3e50",
+                fontWeight: 600
+              }}>
+                {item.value}
+              </Title>
+            </Card>
+          </Col>
+        ))}
       </Row>
 
-      {/* Graphs Section */}
-      <Row gutter={[16, 16]} style={{ marginTop: "20px" }}>
+      {/* Charts Section */}
+      <Row gutter={[16, 16]} style={{ marginTop: "24px" }}>
         <Col xs={24} md={12}>
-          <Card title="Task Breakdown" bordered={false}>
-            <Bar data={barChartData} />
+          <Card 
+            title="Task Breakdown"
+            style={{ 
+              borderRadius: "12px",
+              boxShadow: "0 4px 8px rgba(0,0,0,0.05)",
+              border: "none"
+            }}
+            headStyle={{ 
+              borderBottom: "none",
+              padding: "0 20px",
+              marginTop: "10px"
+            }}
+            bodyStyle={{ padding: "20px" }}
+          >
+            <Bar 
+              data={barChartData}
+              options={{
+                responsive: true,
+                plugins: {
+                  legend: {
+                    position: 'top',
+                    labels: {
+                      usePointStyle: true,
+                    }
+                  }
+                },
+                scales: {
+                  x: {
+                    grid: {
+                      display: false
+                    }
+                  },
+                  y: {
+                    grid: {
+                      color: "#f0f0f0"
+                    }
+                  }
+                }
+              }}
+            />
           </Card>
         </Col>
+
         <Col xs={24} md={12}>
           <Card
             title={
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
-                <h3 style={{ margin: 0 }}>Performance Trends</h3>
-                {/* Time Filter Dropdown */}
-                <Select defaultValue="monthly" onChange={setTimeFilter} style={{ width: 150 }}>
+              <div style={{ 
+                display: "flex", 
+                justifyContent: "space-between", 
+                alignItems: "center", 
+                width: "100%",
+                padding: "0 4px"
+              }}>
+                <span style={{ 
+                  fontSize: "16px",
+                  fontWeight: 500,
+                  color: "#2c3e50"
+                }}>
+                  Performance Trends
+                </span>
+                <Select 
+                  defaultValue="monthly" 
+                  onChange={setTimeFilter} 
+                  style={{ width: 150 }}
+                  dropdownStyle={{
+                    borderRadius: "8px"
+                  }}
+                >
                   <Option value="daily">Daily</Option>
                   <Option value="weekly">Weekly</Option>
                   <Option value="monthly">Monthly</Option>
@@ -228,17 +347,74 @@ const TechnicianDashboard = () => {
                 </Select>
               </div>
             }
-            bordered={false}
+            style={{ 
+              borderRadius: "12px",
+              boxShadow: "0 4px 8px rgba(0,0,0,0.05)",
+              border: "none"
+            }}
+            headStyle={{ 
+              borderBottom: "none",
+              padding: "0 20px",
+              marginTop: "10px"
+            }}
+            bodyStyle={{ padding: "20px" }}
           >
-            <Line data={lineChartData} />
+            <Line 
+              data={lineChartData}
+              options={{
+                responsive: true,
+                plugins: {
+                  legend: {
+                    position: 'top',
+                    labels: {
+                      usePointStyle: true,
+                    }
+                  }
+                },
+                scales: {
+                  x: {
+                    grid: {
+                      display: false
+                    }
+                  },
+                  y: {
+                    grid: {
+                      color: "#f0f0f0"
+                    }
+                  }
+                }
+              }}
+            />
           </Card>
         </Col>
-
       </Row>
 
-      {/* Table of Assigned Tasks */}
-      <Card title="Assigned Maintenance Tasks" style={{ marginTop: "20px" }} bordered={false}>
-        <Table columns={columns} dataSource={assignedTasks} pagination={{ pageSize: 5 }} rowKey="id" />
+      {/* Tasks Table */}
+      <Card 
+        title="Assigned Maintenance Tasks"
+        style={{ 
+          marginTop: "24px",
+          borderRadius: "12px",
+          boxShadow: "0 4px 8px rgba(0,0,0,0.05)",
+          border: "none"
+        }}
+        headStyle={{ 
+          borderBottom: "none",
+          padding: "0 20px",
+          marginTop: "10px"
+        }}
+        bodyStyle={{ padding: "20px" }}
+      >
+        <Table 
+          columns={columns} 
+          dataSource={assignedTasks} 
+          pagination={{ pageSize: 5 }} 
+          rowKey="id"
+          style={{
+            borderRadius: "8px",
+            overflow: "hidden"
+          }}
+        />
       </Card>
     </div>
   );

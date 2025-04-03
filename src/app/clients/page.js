@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import React from 'react';
 import { Row, Col, Card, Typography, Select } from "antd";
 import { Bar, Line } from "react-chartjs-2";
 import { SettingOutlined, FileDoneOutlined, HourglassOutlined, CalendarOutlined } from "@ant-design/icons";
@@ -144,22 +145,50 @@ const ClientDashboard = () => {
   };
 
   return (
-    <div style={{ padding: "20px" }}>
-      <Title level={2} style={{ marginBottom: "20px", textAlign: "center" }}>
-        Client Dashboard
+    <div style={{ padding: "20px", background: "#f5f7fa" }}>
+      <Title level={5} style={{ marginBottom: "24px", textAlign: "start", color: "#2c3e50" }}>
+        Client/ Dashboard
       </Title>
 
       <Row gutter={[16, 16]}>
         {[
-          { title: "Total Requests", value: maintenanceStats.totalRequests, icon: <FileDoneOutlined style={{ fontSize: "40px", color: "#1890ff" }} /> },
-          { title: "Pending Requests", value: maintenanceStats.pending, icon: <HourglassOutlined style={{ fontSize: "40px", color: "#ff4d4f" }} /> },
-          { title: "Completed Requests", value: maintenanceStats.completed, icon: <SettingOutlined style={{ fontSize: "40px", color: "#52c41a" }} /> },
-          { title: "Requests In Progress", value: maintenanceStats.scheduled, icon: <CalendarOutlined style={{ fontSize: "40px", color: "#faad14" }} /> },
-        ].map(({ title, value, icon }) => (
+          { title: "Total Requests", value: maintenanceStats.totalRequests, icon: <FileDoneOutlined style={{ fontSize: "24px" }} />, color: "#1890ff" },
+          { title: "Pending Requests", value: maintenanceStats.pending, icon: <HourglassOutlined style={{ fontSize: "24px" }} />, color: "#ff4d4f" },
+          { title: "Completed Requests", value: maintenanceStats.completed, icon: <SettingOutlined style={{ fontSize: "24px" }} />, color: "#52c41a" },
+          { title: "Requests In Progress", value: maintenanceStats.scheduled, icon: <CalendarOutlined style={{ fontSize: "24px" }} />, color: "#faad14" },
+        ].map(({ title, value, icon, color }) => (
           <Col xs={24} sm={12} md={6} key={title}>
-            <Card title={title} bordered={false} style={{ textAlign: "center" }}>
-              {icon}
-              <Title level={3}>{value}</Title>
+            <Card 
+              hoverable
+              style={{ 
+                borderRadius: "12px",
+                boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)",
+                border: "none",
+                transition: "transform 0.2s",
+              }}
+              styles={{ 
+                padding: "20px",
+                textAlign: "center",
+              }}
+            >
+              <div style={{ 
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: "48px",
+                height: "48px",
+                borderRadius: "50%",
+                backgroundColor: `${color}20`, // 20% opacity
+                marginBottom: "16px",
+              }}>
+                {React.cloneElement(icon, { style: { ...icon.props.style, color } })}
+              </div>
+              <Title level={4} style={{ marginBottom: "8px", color: "#7f8c8d" }}>
+                {title}
+              </Title>
+              <Title level={2} style={{ margin: "0", color: "#2c3e50" }}>
+                {value}
+              </Title>
             </Card>
           </Col>
         ))}
@@ -167,11 +196,29 @@ const ClientDashboard = () => {
 
       <Row gutter={[16, 16]} style={{ marginTop: "20px" }}>
         <Col xs={24} md={12}>
-          <Card title="Maintenance Requests by Type" bordered={false}>
+          <Card 
+            title="Maintenance Requests by Type" 
+            style={{ 
+              borderRadius: "12px",
+              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)",
+              border: "none",
+            }}
+          >
             {barChartData && (
               <Bar
                 data={barChartData}
-                options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true }, tooltip: { enabled: true } } }}
+                options={{ 
+                  responsive: true, 
+                  maintainAspectRatio: false, 
+                  plugins: { 
+                    legend: { display: true, position: "top" }, 
+                    tooltip: { enabled: true } 
+                  },
+                  scales: {
+                    x: { grid: { display: false } },
+                    y: { grid: { color: "#f0f0f0" } }
+                  }
+                }}
                 style={{ height: "300px" }}
               />
             )}
@@ -182,8 +229,13 @@ const ClientDashboard = () => {
           <Card
             title={
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <h3>Maintenance Trends Over Time</h3>
-                <Select defaultValue="monthly" onChange={setTimeFilter} style={{ width: 200 }}>
+                <span style={{ fontWeight: "500", color: "#2c3e50" }}>Maintenance Trends Over Time</span>
+                <Select 
+                  defaultValue="monthly" 
+                  onChange={setTimeFilter} 
+                  style={{ width: 200 }}
+                  dropdownStyle={{ borderRadius: "8px" }}
+                >
                   <Option value="daily">Daily</Option>
                   <Option value="weekly">Weekly</Option>
                   <Option value="monthly">Monthly</Option>
@@ -191,12 +243,27 @@ const ClientDashboard = () => {
                 </Select>
               </div>
             }
-            bordered={false}
+            style={{ 
+              borderRadius: "12px",
+              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)",
+              border: "none",
+            }}
           >
             {lineChartData && (
               <Line
                 data={lineChartData}
-                options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true }, tooltip: { enabled: true } } }}
+                options={{ 
+                  responsive: true, 
+                  maintainAspectRatio: false, 
+                  plugins: { 
+                    legend: { display: true, position: "top" }, 
+                    tooltip: { enabled: true } 
+                  },
+                  scales: {
+                    x: { grid: { display: false } },
+                    y: { grid: { color: "#f0f0f0" } }
+                  }
+                }}
                 style={{ height: "300px" }}
               />
             )}

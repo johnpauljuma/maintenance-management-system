@@ -1,3 +1,5 @@
+"use client"
+
 import { useState, useEffect } from "react";
 import { Modal, Button, Form, Input, DatePicker, message, Upload, Radio, Row, Col } from "antd";
 import { UploadOutlined, InboxOutlined } from "@ant-design/icons";
@@ -22,30 +24,20 @@ const ReportModal = ({ visible, onClose, task }) => {
 
     try {
       const reportData = {
-        request_id: task.id,
-        client_name: task.client,
-        client_phone: task.client,
-        location: task.location,
-        assigned_technician_id: task.assigned_technician_id,
-        assigned_technician_name: task.assigned_technician_name,
-        service_completed_successful: values.service_completed_successful,
-        tools_used: values.tools_used,
-        spare_parts_used: values.spare_parts_used,
-        challenges_faced: values.challenges_faced,
-        recommendations: values.recommendations,
-        additional_info: values.additional_info,
-        date: values.date ? values.date.format("YYYY-MM-DD") : null,
-        time_taken: values.time_taken,
+        request_id: task.id, client_name: task.client, client_phone: task.client, location: task.location,
+        assigned_technician_id: task.assigned_technician_id, assigned_technician_name: task.assigned_technician_name,
+        service_completed_successful: values.service_completed_successful, tools_used: values.tools_used,
+        spare_parts_used: values.spare_parts_used,   challenges_faced: values.challenges_faced,
+        recommendations: values.recommendations,  additional_info: values.additional_info,
+        date: values.date ? values.date.format("YYYY-MM-DD") : null, time_taken: values.time_taken,
       };
 
       const { error: reportError } = await supabase.from("reports").insert([reportData]);
       if (reportError) throw reportError;
 
       await supabase.from("requests").update({ status: "completed" }).eq("id", task.id);
-      //await supabase.from("technicians").update({ workload: supabase.raw("workload - 1") }).eq("technician_id", task.assigned_technician_id);
       
       // Step 3: Reduce the technician's workload by 1 (but not below 0)
-      // Fetch the current workload
       const { data: technicianData, error: technicianError } = await supabase
         .from("technicians")
         .select("workload")

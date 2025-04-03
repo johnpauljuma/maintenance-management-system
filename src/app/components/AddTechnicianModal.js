@@ -40,7 +40,7 @@ const AddTechnicianModal = ({ isOpen, onClose }) => {
   
       message.success("Technician added successfully!");
       form.resetFields();
-      onClose(); // Close modal after success
+      onClose();
   
     } catch (error) {
       console.error("❌ Error:", error.message);

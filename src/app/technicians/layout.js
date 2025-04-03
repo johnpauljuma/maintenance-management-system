@@ -13,12 +13,12 @@ import { supabase } from "../../../lib/supabase";
 import AppFooter from "../components/TechnicianFooter";
 
 const { Header, Sider, Content, Footer } = Layout;
-const { useBreakpoint } = Grid; // ✅ Ant Design Grid Breakpoints
+const { useBreakpoint } = Grid;
 
 const TechnicianLayout = ({ children }) => {
   const router = useRouter();
   const pathname = usePathname();
-  const screens = useBreakpoint(); // ✅ Get responsive screen size
+  const screens = useBreakpoint();
   const [user, setUser] = useState(null);
   const [technician, setTechnician] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -115,7 +115,7 @@ const TechnicianLayout = ({ children }) => {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "notifications" },
-        fetchNotifications // Refetch on any change
+        fetchNotifications
       )
       .subscribe();
 
@@ -123,7 +123,6 @@ const TechnicianLayout = ({ children }) => {
       supabase.removeChannel(subscription);
     };
   }, []);
-
 
   if (loading) {
     return (
@@ -136,29 +135,9 @@ const TechnicianLayout = ({ children }) => {
   return (
     <Layout style={{ minHeight: "100vh" }}>
       {/* Navbar */}
-      <Header
-        style={{
-          background: "#02245B",
-          color: "white",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: "0 20px",
-          position: "fixed",
-          top: 0,
-          width: "100%",
-          zIndex: 1000,
-          height: "64px",
-          boxShadow: "0 2px 5px rgba(0,0,0,0.2)",
-        }}
-      >
+      <Header style={{background: "#02245B", color: "white", display: "flex", justifyContent: "space-between", alignItems: "center",  padding: "0 20px",  position: "fixed",    top: 0,  width: "100%",  zIndex: 1000,  height: "64px", boxShadow: "0 2px 5px rgba(0,0,0,0.2)", }}>
         {/* Mobile Menu Toggle */}
-        <Button 
-          type="text" 
-          icon={<MenuOutlined />} 
-          onClick={() => setCollapsed(true)} 
-          style={{ color: "white", display: screens.md ? "none" : "inline-block" }} 
-        />
+        <Button type="text" icon={<MenuOutlined />} onClick={() => setCollapsed(true)} style={{ color: "white", display: screens.md ? "none" : "inline-block" }}/>
 
         {/* App Name - Hidden on Mobile */}
         {screens.md && <span style={{ fontSize: "18px", fontWeight: "bold" }}>AFMMS - Technician Portal</span>}
@@ -186,18 +165,7 @@ const TechnicianLayout = ({ children }) => {
       <Layout>
         {/* Sidebar (Desktop) */}
         {screens.md && (
-          <Sider
-            width={200}
-            style={{
-              background: "#fff",
-              height: "calc(100vh - 64px)",
-              position: "fixed",
-              left: 0,
-              top: "64px",
-              bottom: "60px",
-              boxShadow: "2px 0px 10px rgba(0,0,0,0.1)",
-            }}
-          >
+          <Sider width={200} style={{background: "#fff", height: "calc(100vh - 64px)", position: "fixed", left: 0, top: "64px", bottom: "60px", boxShadow: "2px 0px 10px rgba(0,0,0,0.1)", }}>
             <Menu mode="inline" selectedKeys={[getMenuKey()]} style={{ height: "100%", borderRight: 0 }} items={sidebarItems} />
           </Sider>
         )}

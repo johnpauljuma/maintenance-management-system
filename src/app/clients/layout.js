@@ -4,9 +4,9 @@ import "@ant-design/v5-patch-for-react-19";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Layout, Menu, Avatar, Dropdown, Button, Drawer, Spin, Space, Badge } from "antd";
-import { BellOutlined, UserOutlined, HomeOutlined, SettingOutlined, LogoutOutlined, MenuOutlined, PlusCircleOutlined, OrderedListOutlined,
-  QuestionCircleOutlined, FacebookOutlined, TwitterOutlined, LinkedinOutlined, InstagramOutlined, WhatsAppOutlined, YoutubeOutlined, FileSearchOutlined,
-  StarOutlined, LikeOutlined,
+import { BellOutlined, UserOutlined, HomeOutlined, SettingOutlined, LogoutOutlined, MenuOutlined, PlusCircleOutlined, 
+  OrderedListOutlined, QuestionCircleOutlined, FacebookOutlined, TwitterOutlined, LinkedinOutlined, InstagramOutlined, 
+  WhatsAppOutlined, YoutubeOutlined, FileSearchOutlined, StarOutlined, LikeOutlined,
 } from "@ant-design/icons";
 import Link from "next/link";
 import { supabase } from "../../../lib/supabase";
@@ -206,21 +206,10 @@ const ClientLayout = ({ children }) => {
     <Layout style={{ minHeight: "100vh" }}>
       {/* Navbar */}
       <Header
-        style={{
-          background: "#02245B",
-          color: "white",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: "0 20px",
-          position: "fixed",
-          top: 0,
-          width: "100%",
-          zIndex: 1000,
-          height: "64px",
-          boxShadow: "0 2px 5px rgba(0,0,0,0.2)",
-        }}
-      >
+        style={{background: "#02245B", color: "white", display: "flex", justifyContent: "space-between",
+          alignItems: "center", padding: "0 20px", position: "fixed", top: 0, width: "100%",
+          zIndex: 1000, height: "64px", boxShadow: "0 2px 5px rgba(0,0,0,0.2)",
+        }}>
         {/* Left Side: Mobile Menu Toggle */}
         {isMobile && (
           <Button type="text" icon={<MenuOutlined />} onClick={() => setCollapsed(true)} style={{ color: "white" }} />
@@ -236,15 +225,17 @@ const ClientLayout = ({ children }) => {
             <BellOutlined style={{ fontSize: "20px", cursor: "pointer", color:"white" }} />
           </Badge>
         </Link>
-
-
           <Dropdown menu={userMenu} placement="bottomRight" trigger={["click"]}>
+<<<<<<< HEAD
             <Button type="text" data-testid="user-profile-button" style={{ color: "white", display: "flex", alignItems: "center", gap: "10px" }}>
+=======
+            <Button type="text" style={{ color: "white", display: "flex", alignItems: "center", gap: "10px" }}  data-testid="user-profile-button">
+>>>>>>> e7c78d5 (added email and payment modules)
               {user?.user_metadata?.fullName || "User"}
               <Avatar
                 src={user?.user_metadata?.profilePic || "l"}
                 icon={!user?.user_metadata?.profilePic ? <UserOutlined /> : null}
-              />
+              /> 
             </Button>
           </Dropdown>
         </div>
@@ -255,14 +246,8 @@ const ClientLayout = ({ children }) => {
         {!isMobile && (
           <Sider
             width={200}
-            style={{
-              background: "#fff",
-              height: "calc(100vh - 64px)",
-              position: "fixed",
-              left: 0,
-              top: "64px",
-              bottom: "60px",
-              boxShadow: "2px 0px 10px rgba(0,0,0,0.1)",
+            style={{background: "#fff", height: "calc(100vh - 64px)", position: "fixed", left: 0, top: "64px",
+              bottom: "60px", boxShadow: "2px 0px 10px rgba(0,0,0,0.1)",
             }}
           >
             <Menu mode="inline" selectedKeys={[getMenuKey()]} style={{ height: "100%", borderRight: 0 }} items={sidebarItems} />
@@ -281,19 +266,8 @@ const ClientLayout = ({ children }) => {
 
           {/* Mini Footer */}
           <Footer
-            style={{
-              background: "#f5f5f5",
-              textAlign: "center",
-              position: "fixed",
-              bottom: 0,
-              left: 0,
-              width: "100%",
-              height: "60px",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-          >
+            style={{background: "#f5f5f5", textAlign: "center", position: "fixed", bottom: 0, left: 0, width: "100%", height: "60px",
+              display: "flex", justifyContent: "center", alignItems: "center",}}>
             <div style={{ textAlign: "center" }}>
               <h4 style={{ color: "#02245b", marginBottom: "5px", fontStyle:"italic" }}>Follow Us</h4>
               <Space size="large">

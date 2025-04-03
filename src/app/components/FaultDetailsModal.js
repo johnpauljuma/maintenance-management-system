@@ -11,13 +11,13 @@ const FaultDetailsModal = ({ visible, onClose, fault }) => {
   const [assignModalVisible, setAssignModalVisible] = useState(false);
   const [selectedRequestId, setSelectedRequestId] = useState(null);
 
-  // 📌 Open Assign Technician Modal
+  // Open Assign Technician Modal
   const handleOpenAssignModal = (requestId) => {
     setSelectedRequestId(requestId);
     setAssignModalVisible(true);
   };
 
-  // 📌 Close Assign Technician Modal
+  // Close Assign Technician Modal
   const handleCloseAssignModal = () => {
     setAssignModalVisible(false);
     setSelectedRequestId(null);
@@ -81,7 +81,7 @@ const FaultDetailsModal = ({ visible, onClose, fault }) => {
         </p>
       </Modal>
 
-      {/* ✅ Assign Technician Modal (Now Properly Placed) */}
+      {/* Assign Technician Modal (Now Properly Placed) */}
       <AssignTechnicianModal 
         visible={assignModalVisible} 
         onClose={handleCloseAssignModal} 

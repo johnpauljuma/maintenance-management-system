@@ -20,7 +20,7 @@ const TechnicianForgotPassword = () => {
 
     const { email } = values;
     const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: "https://yourdomain.com/technicians/reset-password", // Update with your domain
+      redirectTo: "https://yourdomain.com/technicians/reset-password",
     });
 
     if (error) {

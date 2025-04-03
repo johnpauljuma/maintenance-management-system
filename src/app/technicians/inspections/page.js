@@ -75,7 +75,7 @@ const TechnicianInspections = () => {
     <div style={{ padding: "20px" }}>
       <Title level={2} style={{ textAlign: "center", marginBottom: "20px" }}>Technician Inspections</Title>
 
-      {/* 📌 Scheduled Inspections (Cards) */}
+      {/* Scheduled Inspections (Cards) */}
       <Title level={3} style={{ textAlign: "left", marginBottom: "20px" }}>Scheduled Inspections</Title>
       <Row gutter={[16, 16]} style={{ marginBottom: "20px" }}>
         {scheduledInspections.map((inspection) => (
@@ -102,7 +102,7 @@ const TechnicianInspections = () => {
         ))}
       </Row>
 
-      {/* 📌 All Inspections Table */}
+      {/* All Inspections Table */}
       <Card bordered={false} style={{ boxShadow: "0px 2px 10px rgba(0,0,0,0.1)" }}>
         <Table
           columns={columns}

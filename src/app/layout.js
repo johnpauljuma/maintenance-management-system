@@ -1,3 +1,5 @@
+import Script from "next/script";
+import { useLoadScript } from "@react-google-maps/api";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Layout, ConfigProvider, App } from "antd";
 import "./globals.css";
@@ -22,6 +24,8 @@ const themeConfig = {
     colorPrimary: "#A61B22", // Change primary color
   },
 };
+
+const libraries = ["places"]; 
 
 export default function RootLayout({ children }) {
   return (

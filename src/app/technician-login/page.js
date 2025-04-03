@@ -23,7 +23,7 @@ const TechnicianLogin = () => {
     // Step 1: Fetch technician data by ID
     const { data: technician, error } = await supabase
       .from("technicians")
-      .select("*") // Fetch all details for session storage
+      .select("*")
       .eq("technician_id", technicianId)
       .limit(1)
       .single();
@@ -45,7 +45,7 @@ const TechnicianLogin = () => {
     // Step 3: Store technician details in sessionStorage
     sessionStorage.setItem("technicianId", technicianId); 
     sessionStorage.setItem("technicianLoggedIn", "true");
-    sessionStorage.setItem("technician", JSON.stringify(technician)); // Store entire technician object
+    sessionStorage.setItem("technician", JSON.stringify(technician));
     
     message.success("Login successful!");
     setLoading(false);

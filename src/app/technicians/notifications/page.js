@@ -100,7 +100,7 @@ const TechnicianNotifications = () => {
       const subscription = listenForTechnicianNotifications(technicianId);
   
       return () => {
-        subscription.unsubscribe(); // Cleanup on component unmount
+        subscription.unsubscribe();
       };
     }
   }, [technicianId]);

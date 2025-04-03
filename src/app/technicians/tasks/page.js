@@ -542,7 +542,7 @@ const TechnicianTasks = () => {
                       </Popover>
                     )}
                   </div>
-                } bordered={false} style={{ boxShadow: "0px 2px 10px rgba(0,0,0,0.1)" }}>
+                } variant="borderLess" style={{ boxShadow: "0px 2px 10px rgba(0,0,0,0.1)" }}>
                 <Row gutter={16} align="middle">
                   <Col span={18} md={18}>
                     <Text><strong>Client:</strong> {task.client}</Text>

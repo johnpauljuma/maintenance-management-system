@@ -10,7 +10,7 @@ const { Title } = Typography;
 
 const EditProfile = () => {
   const router = useRouter();
-  const [form] = Form.useForm(); // ✅ Properly initialize form
+  const [form] = Form.useForm();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -33,7 +33,7 @@ const EditProfile = () => {
         message.error("Failed to fetch profile.");
         router.replace("/technicians");
       } else {
-        form.setFieldsValue(data); // ✅ Set initial form values
+        form.setFieldsValue(data);
       }
       setLoading(false);
     };
@@ -67,7 +67,7 @@ const EditProfile = () => {
     <div style={{ maxWidth: 700, margin: "auto", padding: 30 }}>
       <Title level={2} style={{ textAlign: "center", marginBottom: 20 }}>Edit Profile</Title>
       
-      {/* ✅ Pass the `form` prop explicitly */}
+      {/* Pass the `form` prop explicitly */}
       <Form form={form} layout="vertical" onFinish={handleUpdate}>
         <Row gutter={24}>
           {/* Left Column */}

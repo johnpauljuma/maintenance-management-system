@@ -1,3 +1,5 @@
+"use client"
+
 import { Layout, Row, Col, Typography, Card, Space } from "antd";
 import { MailOutlined, PhoneOutlined, HomeOutlined, DoubleRightOutlined } from "@ant-design/icons";
 import Link from "next/link";

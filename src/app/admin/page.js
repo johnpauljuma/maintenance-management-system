@@ -113,7 +113,7 @@ const AdminDashboard = () => {
     updateLineChart(data);
   };
 
-  // 📊 Status Bar Chart Data
+  // Status Bar Chart Data
   const statusBarChartData = {
     labels: ["Pending", "In Progress", "Completed"],
     datasets: [
@@ -224,6 +224,7 @@ const AdminDashboard = () => {
                 boxShadow: "0 0 5px rgba(0, 0, 0, 0.1)",
                 borderBottom: "5px solid #02245b",
                 position: "relative",
+                
               }}
             >
               {/* Percentage Display */}
@@ -252,12 +253,12 @@ const AdminDashboard = () => {
                 </Col>
 
                 {/* Text Column */}
-                <Col span={18}>
+                <Col span={18} >
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                    <Title level={5} style={{ marginBottom: "2px", color: "#333", fontSize: "14px" }}>
+                    <Title level={5} style={{ marginBottom: "2px", color: "#7f8c8d", fontSize: "14px" }}>
                       {title}
                     </Title>
-                    <Title level={3} style={{ margin: 0, color: "#1890ff", fontSize: "24px" }}>
+                    <Title level={4} style={{ margin: 0, fontSize: "24px" }}>
                       {value}
                     </Title>
                   </div>
