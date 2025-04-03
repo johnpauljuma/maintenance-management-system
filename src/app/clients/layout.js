@@ -225,20 +225,20 @@ const ClientLayout = ({ children }) => {
             <BellOutlined style={{ fontSize: "20px", cursor: "pointer", color:"white" }} />
           </Badge>
         </Link>
-          <Dropdown menu={userMenu} placement="bottomRight" trigger={["click"]}>
-            <>
-            <Button type="text" data-testid="user-profile-button" style={{ color: "white", display: "flex", alignItems: "center", gap: "10px" }} />
-            
-            <Button type="text" style={{ color: "white", display: "flex", alignItems: "center", gap: "10px" }}  data-testid="user-profile-button">
+        <Dropdown menu={{ items: userMenu.items }} placement="bottomRight" trigger={["click"]}>
+          <Button
+            type="text"
+            style={{ color: "white", display: "flex", alignItems: "center", gap: "10px" }}
+            data-testid="user-profile-button"
+          >
+            {user?.user_metadata?.fullName || "User"}
+            <Avatar
+              src={user?.user_metadata?.profilePic}
+              icon={!user?.user_metadata?.profilePic ? <UserOutlined /> : null}
+            />
+          </Button>
+        </Dropdown>
 
-              {user?.user_metadata?.fullName || "User"}
-              <Avatar
-                src={user?.user_metadata?.profilePic || "l"}
-                icon={!user?.user_metadata?.profilePic ? <UserOutlined /> : null}
-              /> 
-            </Button>
-            </>
-          </Dropdown>
         </div>
       </Header>
 

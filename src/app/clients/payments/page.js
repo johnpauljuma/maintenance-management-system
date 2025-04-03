@@ -189,7 +189,7 @@ function CheckoutForm() {
       style={{ maxWidth: "1000px", margin: "auto" }}
     >
       <Card
-        bordered={false}
+        variant="borderless"
         style={{
           borderRadius: "16px",
           boxShadow: "0 10px 30px rgba(0,0,0,0.1)",

@@ -165,12 +165,11 @@ const ClientDashboard = () => {
                 boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)",
                 border: "none",
                 transition: "transform 0.2s",
-              }}
-              styles={{ 
-                padding: "20px",
-                textAlign: "center",
+                padding: "0px", textAlign: "center",
+                borderTop: `4px solid ${color}`,
               }}
             >
+              
               <div style={{ 
                 display: "inline-flex",
                 alignItems: "center",
@@ -180,15 +179,17 @@ const ClientDashboard = () => {
                 borderRadius: "50%",
                 backgroundColor: `${color}20`, // 20% opacity
                 marginBottom: "16px",
+                
               }}>
                 {React.cloneElement(icon, { style: { ...icon.props.style, color } })}
               </div>
               <Title level={4} style={{ marginBottom: "8px", color: "#7f8c8d" }}>
                 {title}
               </Title>
-              <Title level={2} style={{ margin: "0", color: "#2c3e50" }}>
+              <Title level={2} style={{ margin: "auto", color: "#2c3e50" }}>
                 {value}
               </Title>
+              
             </Card>
           </Col>
         ))}

@@ -227,10 +227,9 @@ const TechnicianDashboard = () => {
                 boxShadow: "0 4px 8px rgba(0,0,0,0.05)",
                 border: "none",
                 transition: "all 0.3s ease",
-              }}
-              bodyStyle={{ 
-                padding: "20px",
+                padding: "0px",
                 textAlign: "center",
+                borderTop: `4px solid ${item.color}`,
               }}
             >
               <div style={{
@@ -241,7 +240,7 @@ const TechnicianDashboard = () => {
                 height: "56px",
                 borderRadius: "12px",
                 backgroundColor: item.bgColor,
-                marginBottom: "16px"
+                marginBottom: "10px"
               }}>
                 {React.cloneElement(item.icon, { 
                   style: { 
@@ -253,7 +252,7 @@ const TechnicianDashboard = () => {
               <Title level={4} style={{ 
                 marginBottom: "8px", 
                 color: "#7f8c8d",
-                fontWeight: 500
+                fontWeight: 600
               }}>
                 {item.title}
               </Title>
