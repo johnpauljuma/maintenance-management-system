@@ -120,7 +120,7 @@ const ClientNotifications = () => {
     <Layout style={{ padding: "20px", backgroundColor: "#f0f2f5" }}>
       <Content>
         {/* Notifications Overview */}
-        <Card title="Notifications Overview" bordered={false} style={{ marginBottom: 20, borderTop: "4px solid #a61b22" }}>
+        <Card title="Notifications Overview" variant="borderless" style={{ marginBottom: 20, borderTop: "4px solid #a61b22" }}>
           <Space size="middle">
             <Button icon={<BellOutlined />} style={{ backgroundColor: "#a61b22", color: "#fff", border: "none" }}>
               Total: {notifications.length}
@@ -135,7 +135,7 @@ const ClientNotifications = () => {
         </Card>
 
         {/* Filters & Search */}
-        <Card bordered={false} style={{ marginBottom: 20 }}>
+        <Card variant="borderless" style={{ marginBottom: 20 }}>
           <Space size="middle">
             <Button type={filter === "all" ? "primary" : "default"} onClick={() => setFilter("all")}>
               All
@@ -156,7 +156,7 @@ const ClientNotifications = () => {
         </Card>
 
         {/* Notifications List */}
-        <Card title="Notifications" bordered={false} style={{ borderTop: "4px solid #02245b" }}>
+        <Card title="Notifications" variant="borderless" style={{ borderTop: "4px solid #02245b" }}>
           {loading ? (
             <Spin size="large" />
           ) : (

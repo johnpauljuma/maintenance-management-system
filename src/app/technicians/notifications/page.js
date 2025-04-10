@@ -106,14 +106,26 @@ const TechnicianNotifications = () => {
   }, [technicianId]);
 //  
   // Mark Notification as Read
-  const markAsRead = async (id) => {
+  /*const markAsRead = async (id) => {
     const { error } = await supabase.from("notifications").update({ status: "read" }).eq("notification_id", id);
     if (!error) {
       setNotifications((prev) => prev.map((n) => (n.notification_id === id ? { ...n, status: "read" } : n)));
     } else {
       message.error("Failed to update notification.");
     }
+  };*/
+
+  const toggleReadStatus = async (id, currentStatus) => {
+    const newStatus = currentStatus === "unread" ? "read" : "unread";
+    const { error } = await supabase.from("notifications").update({ status: newStatus }).eq("notification_id", id);
+
+    if (!error) {
+      setNotifications((prev) =>
+        prev.map((n) => (n.notification_id === id ? { ...n, status: newStatus } : n))
+      );
+    }
   };
+
 
   // Handle message click (open modal and mark as read)
   const handleMessageClick = async (record) => {
@@ -121,7 +133,7 @@ const TechnicianNotifications = () => {
     setModalVisible(true);
 
     if (record.status === "unread") {
-      await markAsRead(record.notification_id);
+      await toggleReadStatus(record.notification_id, record.status);
     }
   };
 
@@ -168,7 +180,7 @@ const TechnicianNotifications = () => {
         <Tag
           color={status === "unread" ? "red" : "green"}
           style={{ cursor: "pointer" }}
-          onClick={() => markAsRead(record.notification_id)}
+          onClick={() => toggleReadStatus(record.notification_id, status)}
         >
           {status || "unread"}
         </Tag>
@@ -186,7 +198,7 @@ const TechnicianNotifications = () => {
     <Layout style={{ padding: "20px", backgroundColor: "#f0f2f5" }}>
       <Content>
         {/* Notification Overview */}
-        <Card title="Notifications Overview" bordered={false} style={{ marginBottom: 20, borderTop: "4px solid #a61b22" }}>
+        <Card title="Notifications Overview" variant="borderless" style={{ marginBottom: 20, borderTop: "4px solid #a61b22" }}>
           <Space size="middle">
             <Button icon={<BellOutlined />} style={{ backgroundColor: "#a61b22", color: "#fff", border: "none" }}>
               Total: {notifications.length}
@@ -201,7 +213,7 @@ const TechnicianNotifications = () => {
         </Card>
 
         {/* Filters & Search */}
-        <Card bordered={false} style={{ marginBottom: 20 }}>
+        <Card variant="borderless" style={{ marginBottom: 20 }}>
           <Space size="middle">
             <Button type={filter === "all" ? "primary" : "default"} onClick={() => setFilter("all")}>
               All
@@ -222,7 +234,7 @@ const TechnicianNotifications = () => {
         </Card>
 
         {/* Notification Table */}
-        <Card title="Notifications" bordered={false} style={{ borderTop: "4px solid #02245b" }}>
+        <Card title="Notifications" variant="borderless" style={{ borderTop: "4px solid #02245b" }}>
           {loading ? <Spin size="large" /> : <Table columns={columns} dataSource={filteredNotifications} rowKey="notification_id" pagination={{ pageSize: 5 }} />}
         </Card>
 

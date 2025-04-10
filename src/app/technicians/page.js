@@ -278,12 +278,7 @@ const TechnicianDashboard = () => {
               boxShadow: "0 4px 8px rgba(0,0,0,0.05)",
               border: "none"
             }}
-            headStyle={{ 
-              borderBottom: "none",
-              padding: "0 20px",
-              marginTop: "10px"
-            }}
-            bodyStyle={{ padding: "20px" }}
+            styles={{header:{borderBottom: "none", padding: "0 20px", marginTop: "10px"}, body:{padding: "20px"}}}
           >
             <Bar 
               data={barChartData}
@@ -349,14 +344,10 @@ const TechnicianDashboard = () => {
             style={{ 
               borderRadius: "12px",
               boxShadow: "0 4px 8px rgba(0,0,0,0.05)",
-              border: "none"
+              border: "none",
+              header:{borderBottom: "none", padding: "0 20px", marginTop: "10px"},
+              body:{padding: "20px"}
             }}
-            headStyle={{ 
-              borderBottom: "none",
-              padding: "0 20px",
-              marginTop: "10px"
-            }}
-            bodyStyle={{ padding: "20px" }}
           >
             <Line 
               data={lineChartData}
@@ -395,14 +386,10 @@ const TechnicianDashboard = () => {
           marginTop: "24px",
           borderRadius: "12px",
           boxShadow: "0 4px 8px rgba(0,0,0,0.05)",
-          border: "none"
+          border: "none",
+          header:{borderBottom: "none", padding: "0 20px", marginTop: "10px"},
+          body:{padding: "20px"}
         }}
-        headStyle={{ 
-          borderBottom: "none",
-          padding: "0 20px",
-          marginTop: "10px"
-        }}
-        bodyStyle={{ padding: "20px" }}
       >
         <Table 
           columns={columns} 

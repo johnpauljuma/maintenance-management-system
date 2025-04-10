@@ -3,7 +3,7 @@
 import "@ant-design/v5-patch-for-react-19";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Layout, Menu, Avatar, Dropdown, Button, Drawer, Spin, Space, Badge } from "antd";
+import { Layout, Menu, Avatar, Dropdown, Button, Drawer, Spin, Space, Badge, App } from "antd";
 import { BellOutlined, UserOutlined, HomeOutlined, SettingOutlined, LogoutOutlined, MenuOutlined, PlusCircleOutlined, 
   OrderedListOutlined, QuestionCircleOutlined, FacebookOutlined, TwitterOutlined, LinkedinOutlined, InstagramOutlined, 
   WhatsAppOutlined, YoutubeOutlined, FileSearchOutlined, StarOutlined, LikeOutlined,
@@ -116,15 +116,15 @@ const ClientLayout = ({ children }) => {
 
   // Fetch unread notifications for admin
   useEffect(() => {
-    const fetchNotifications = async () => {
+    if (!user) return;
+  
+    const fetchUnreadCount = async () => {
       const { data, error } = await supabase
         .from("notifications")
         .select("*")
         .eq("client", true)
         .eq("status", "unread")
         .eq("client_recipient_id", user?.id);
-
-        console.log("User ID => ",user?.id)
   
       if (error) {
         console.error("Error fetching notifications:", error.message);
@@ -134,26 +134,30 @@ const ClientLayout = ({ children }) => {
       setUnreadCount(data.length);
     };
   
-    fetchNotifications(); // Fetch initially
+    fetchUnreadCount();
   
+    // Subscribe to INSERT and UPDATE changes affecting unread count
     const subscription = supabase
-      .channel("notifications")
+      .channel("notifications-realtime")
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "notifications" },
-        fetchNotifications // Re-fetch on new notifications
-      )
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "notifications", filter: "status=eq.unread" },
-        fetchNotifications // Re-fetch when a notification is marked unread/read
+        {
+          event: "*", // react to both INSERT and UPDATE
+          schema: "public",
+          table: "notifications",
+          filter: `client_recipient_id=eq.${user?.id}`,
+        },
+        (payload) => {
+          // Re-fetch count on change
+          fetchUnreadCount();
+        }
       )
       .subscribe();
   
     return () => {
       supabase.removeChannel(subscription);
     };
-  }, [user]);
+  }, [user]);  
   
   // Sidebar menu items
   const sidebarItems = [
@@ -203,100 +207,102 @@ const ClientLayout = ({ children }) => {
   }
 
   return (
-    <Layout style={{ minHeight: "100vh" }}>
-      {/* Navbar */}
-      <Header
-        style={{background: "#02245B", color: "white", display: "flex", justifyContent: "space-between",
-          alignItems: "center", padding: "0 20px", position: "fixed", top: 0, width: "100%",
-          zIndex: 1000, height: "64px", boxShadow: "0 2px 5px rgba(0,0,0,0.2)",
-        }}>
-        {/* Left Side: Mobile Menu Toggle */}
-        {isMobile && (
-          <Button type="text" icon={<MenuOutlined />} onClick={() => setCollapsed(true)} style={{ color: "white" }} />
-        )}
+    <App>
+      <Layout style={{ minHeight: "100vh" }}>
+        {/* Navbar */}
+        <Header
+          style={{background: "#02245B", color: "white", display: "flex", justifyContent: "space-between",
+            alignItems: "center", padding: "0 20px", position: "fixed", top: 0, width: "100%",
+            zIndex: 1000, height: "64px", boxShadow: "0 2px 5px rgba(0,0,0,0.2)",
+          }}>
+          {/* Left Side: Mobile Menu Toggle */}
+          {isMobile && (
+            <Button type="text" icon={<MenuOutlined />} onClick={() => setCollapsed(true)} style={{ color: "white" }} />
+          )}
 
-        {/* Middle: App Name */}
-        <span style={{ fontSize: "18px", fontWeight: "bold" }}>AFMMS</span>
+          {/* Middle: App Name */}
+          <span style={{ fontSize: "18px", fontWeight: "bold" }}>AFMMS</span>
 
-        {/* Right Side: Notifications & Profile */}
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-        <Link href="/clients/notifications">
-          <Badge count={unreadCount} overflowCount={99} size="small">
-            <BellOutlined style={{ fontSize: "20px", cursor: "pointer", color:"white" }} />
-          </Badge>
-        </Link>
-        <Dropdown menu={{ items: userMenu.items }} placement="bottomRight" trigger={["click"]}>
-          <Button
-            type="text"
-            style={{ color: "white", display: "flex", alignItems: "center", gap: "10px" }}
-            data-testid="user-profile-button"
-          >
-            {user?.user_metadata?.fullName || "User"}
-            <Avatar
-              src={user?.user_metadata?.profilePic}
-              icon={!user?.user_metadata?.profilePic ? <UserOutlined /> : null}
-            />
-          </Button>
-        </Dropdown>
+          {/* Right Side: Notifications & Profile */}
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <Link href="/clients/notifications">
+            <Badge count={unreadCount} overflowCount={99} size="small">
+              <BellOutlined style={{ fontSize: "20px", cursor: "pointer", color:"white" }} />
+            </Badge>
+          </Link>
+          <Dropdown menu={{ items: userMenu.items }} placement="bottomRight" trigger={["click"]}>
+            <Button
+              type="text"
+              style={{ color: "white", display: "flex", alignItems: "center", gap: "10px" }}
+              data-testid="user-profile-button"
+            >
+              {user?.user_metadata?.fullName || "User"}
+              <Avatar
+                src={user?.user_metadata?.profilePic}
+                icon={!user?.user_metadata?.profilePic ? <UserOutlined /> : null}
+              />
+            </Button>
+          </Dropdown>
 
-        </div>
-      </Header>
+          </div>
+        </Header>
 
-      <Layout>
-        {/* Sidebar (Desktop View) */}
-        {!isMobile && (
-          <Sider
-            width={200}
-            style={{background: "#fff", height: "calc(100vh - 64px)", position: "fixed", left: 0, top: "64px",
-              bottom: "60px", boxShadow: "2px 0px 10px rgba(0,0,0,0.1)",
-            }}
-          >
-            <Menu mode="inline" selectedKeys={[getMenuKey()]} style={{ height: "100%", borderRight: 0 }} items={sidebarItems} />
-          </Sider>
-        )}
+        <Layout>
+          {/* Sidebar (Desktop View) */}
+          {!isMobile && (
+            <Sider
+              width={200}
+              style={{background: "#fff", height: "calc(100vh - 64px)", position: "fixed", left: 0, top: "64px",
+                bottom: "60px", boxShadow: "2px 0px 10px rgba(0,0,0,0.1)",
+              }}
+            >
+              <Menu mode="inline" selectedKeys={[getMenuKey()]} style={{ height: "100%", borderRight: 0 }} items={sidebarItems} />
+            </Sider>
+          )}
 
-        {/* Sidebar (Mobile View) - Drawer */}
-        <Drawer title="Menu" placement="left" closable onClose={() => setCollapsed(false)} open={collapsed}>
-          <Menu mode="vertical" selectedKeys={[getMenuKey()]} items={sidebarItems} />
-        </Drawer>
+          {/* Sidebar (Mobile View) - Drawer */}
+          <Drawer title="Menu" placement="left" closable onClose={() => setCollapsed(false)} open={collapsed}>
+            <Menu mode="vertical" selectedKeys={[getMenuKey()]} items={sidebarItems} />
+          </Drawer>
 
-        {/* Main Content Area */}
-        <Layout style={{ marginLeft: isMobile ? 0 : 200, marginTop: "64px", minHeight: "calc(100vh - 120px)", overflowY: "auto" }}>
-          <Content style={{ padding: "20px" }}>{children}</Content>
-          <AppFooter />
+          {/* Main Content Area */}
+          <Layout style={{ marginLeft: isMobile ? 0 : 200, marginTop: "64px", minHeight: "calc(100vh - 120px)", overflowY: "auto" }}>
+            <Content style={{ padding: "20px" }}>{children}</Content>
+            <AppFooter />
 
-          {/* Mini Footer */}
-          <Footer
-            style={{background: "#f5f5f5", textAlign: "center", position: "fixed", bottom: 0, left: 0, width: "100%", height: "60px",
-              display: "flex", justifyContent: "center", alignItems: "center",}}>
-            <div style={{ textAlign: "center" }}>
-              <h4 style={{ color: "#02245b", marginBottom: "5px", fontStyle:"italic" }}>Follow Us</h4>
-              <Space size="large">
-                <a href="#" target="_blank" rel="noopener noreferrer">
-                  <YoutubeOutlined style={{ fontSize: "24px", color: "#A61B22" }} />
-                </a>
-                <a href="#" target="_blank" rel="noopener noreferrer">
-                  <FacebookOutlined style={{ fontSize: "24px", color: "#A61B22" }} />
-                </a>
-                <a href="#" target="_blank" rel="noopener noreferrer">
-                  <TwitterOutlined style={{ fontSize: "24px", color: "#A61B22" }} />
-                </a>
-                <a href="#" target="_blank" rel="noopener noreferrer">
-                  <LinkedinOutlined style={{ fontSize: "24px", color: "#A61B22" }} />
-                </a>
-                <a href="#" target="_blank" rel="noopener noreferrer">
-                  <InstagramOutlined style={{ fontSize: "24px", color: "#A61B22" }} />
-                </a>
-                <a href="#" target="_blank" rel="noopener noreferrer">
-                  <WhatsAppOutlined style={{ fontSize: "24px", color: "#A61B22" }} />
-                </a>
-              </Space>
-            </div>
+            {/* Mini Footer */}
+            <Footer
+              style={{background: "#f5f5f5", textAlign: "center", position: "fixed", bottom: 0, left: 0, width: "100%", height: "60px",
+                display: "flex", justifyContent: "center", alignItems: "center",}}>
+              <div style={{ textAlign: "center" }}>
+                <h4 style={{ color: "#02245b", marginBottom: "5px", fontStyle:"italic" }}>Follow Us</h4>
+                <Space size="large">
+                  <a href="#" target="_blank" rel="noopener noreferrer">
+                    <YoutubeOutlined style={{ fontSize: "24px", color: "#A61B22" }} />
+                  </a>
+                  <a href="#" target="_blank" rel="noopener noreferrer">
+                    <FacebookOutlined style={{ fontSize: "24px", color: "#A61B22" }} />
+                  </a>
+                  <a href="#" target="_blank" rel="noopener noreferrer">
+                    <TwitterOutlined style={{ fontSize: "24px", color: "#A61B22" }} />
+                  </a>
+                  <a href="#" target="_blank" rel="noopener noreferrer">
+                    <LinkedinOutlined style={{ fontSize: "24px", color: "#A61B22" }} />
+                  </a>
+                  <a href="#" target="_blank" rel="noopener noreferrer">
+                    <InstagramOutlined style={{ fontSize: "24px", color: "#A61B22" }} />
+                  </a>
+                  <a href="#" target="_blank" rel="noopener noreferrer">
+                    <WhatsAppOutlined style={{ fontSize: "24px", color: "#A61B22" }} />
+                  </a>
+                </Space>
+              </div>
 
-          </Footer>
+            </Footer>
+          </Layout>
         </Layout>
       </Layout>
-    </Layout>
+    </App>
   );
 };
 
